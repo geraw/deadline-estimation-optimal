@@ -197,7 +197,7 @@ A problem very similar to ours is termed ``order reduction'' by Vidyasagar in~\c
 	The $approx(X,m)$ algorithm runs in time $O(n^2log(n))$, using $O(n^2)$ memory where $n=|\support(X)|$.
 \end{theorem}
 \begin{proof}
-	In the first part of the algorithm, lines 2-8, we construct the set $E$ which takes $O(n^2)$ run-time. In the second part of the algorithm, line 9, we sort the set $E$ which takes $O(n^2log(n^2)) = O(n^2log(n))$  run-time. The third part of the algorithm, lines 10-19, describes a binary sort over the set $E$ where in each step of the sort we run the $dual$ algorithm, which takes $O(n log(n^2)) = O(n log(n))$ run-time. We run this part twice then we get $O(2n log(n))$. All together, the run-time complexity is $O(n^2+n^2log(n)+2n log(n)) = O(n^2log(n))$ and the memory complexity is for set $E$ which is $n^2$.
+	In the first part of the algorithm, lines 2-8, we construct the set $E$ which takes $O(n^2)$ run-time. In the second part of the algorithm, line 9, we sort the set $E$ which takes $O(n^2log(n^2)) = O(n^2log(n))$  run-time. The third part of the algorithm, lines 10-19, describes a binary sort over the set $E$ where in each step of the sorting we run the $dual$ algorithm, which takes $O(n log(n^2)) = O(n log(n))$ run-time. We run this part twice then we get $O(2n log(n))$. All together, the run-time complexity is $O(n^2+n^2log(n)+2n log(n)) = O(n^2log(n))$ and the memory complexity is for set $E$ which is $n^2$.
 \end{proof}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
