@@ -124,22 +124,23 @@ A problem very similar to ours is termed ``order reduction'' by Vidyasagar in~\c
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{An algorithm for optimal approximation}\label{sec:algEfficient}
-In the scope of this section, let $X$ be a given random variable with a finite support of size $n$, and let  $0<m\leq n$ be a given complexity bound. The section evolves by presenting two algorithms for finding an optimal $m$-approximation of $X$. The first algorithm is $binsearchApprox(X,m)$ (Algorithm~\ref{alg:naive}) which runs in time of $O(n^2log(n))$ and the second one $linApprox(X,m)$ (Algorithm~\ref{alg:linear}) which runs in time of $O(nlog(n))$. We present both $binsearchApprox(X,m)$ and $linApprox(X,m)$ since Algorithm~\ref{alg:linear} is based on Algorithm~\ref{alg:naive} but carry major run-time improvement.
+In the scope of this section, let $X$ be a random variable such that $|X|=n$, and let  $0<m\leq n$. We present algorithms for finding optimal $m$-approximations of $X$. The first algorithm is $binsearchApprox(X,m)$ (Algorithm~\ref{alg:naive}) which runs in time of $O(n^2\log(n))$. The second algorithm, $linApprox(X,m)$ (Algorithm~\ref{alg:linear}), runs in time of $O(n\log(n))$. 
+%We present both $binsearchApprox(X,m)$ and $linApprox(X,m)$ since Algorithm~\ref{alg:linear} is based on Algorithm~\ref{alg:naive} but carry major run-time improvement.
 
-We begin our dissection by presenting a useful fact that it is enough to limit our search to approximations $X'$s such that $\support(X') \subseteq \support(X)$:
+%We begin our dissection by presenting a useful fact that it is enough to limit our search to approximations $X'$s such that $\support(X') \subseteq \support(X)$:
+%
+%\begin{lemma}\label{lem:supContained}
+%	For every random variable $X''$ there is a random variable $X'$ such that $\support(X') \subseteq \support(X)$ and $d_{K}(X,X')\leq d_{K}(X,X'')$.
+%\end{lemma}
+%
+%\begin{proof}
+%	Let $\{x_1 <\cdots<x_n\} = \support(X)$, and let $x_0 = -\infty, x_{n+1}=\infty$. Consider the random variable $X'$ whose probability mass function is
+%	$f_{X'}(x_i) = P(x_{i-1} < X'' \leq x_i)$ for $i=1,\dots,n-1$,  $f_{X'}(x_n) = P(x_{n-1} < X'')$, and $F_{X'}(x)=0$ if $x\notin \support(X)$.  Since we only "shifted" the probability mass of $X''$ to the support of $X$, we have that $f_{X'}$ is a probability mass function and therefore $X'$ is well defined. 	
+%	By construction, $|F_{X}(x_i)-F_{X'}(x_i)| = |F_{X}(x_i)-F_{X''}(x_i)|$ for every  $0 <  i < n$. For $i=n$ we have $|F_{X}(x_n)-F_{X'}(x_n)| = |1-1|=0$.
+%	Since $|F_{X}(x)-F_{X'}(x)| = |F_{X}(x_i)-F_{X'}(x_i)|$ for every  $0\leq   i  \leq  n$  and $x_i<x<x_{i+1}$, we have that $d_K(X,X')=max_{i}|F_{X}(x_i)-F_{X'}(x_i)|\leq max_{i}|F_{X}(x_i)-F_{X''}(x_i)|\leq d_K(X,X'')$.
+%\end{proof} 
 
-\begin{lemma}\label{lem:supContained}
-	For every random variable $X''$ there is a random variable $X'$ such that $\support(X') \subseteq \support(X)$ and $d_{K}(X,X')\leq d_{K}(X,X'')$.
-\end{lemma}
-
-\begin{proof}
-	Let $\{x_1 <\cdots<x_n\} = \support(X)$, and let $x_0 = -\infty, x_{n+1}=\infty$. Consider the random variable $X'$ whose probability mass function is
-	$f_{X'}(x_i) = P(x_{i-1} < X'' \leq x_i)$ for $i=1,\dots,n-1$,  $f_{X'}(x_n) = P(x_{n-1} < X'')$, and $F_{X'}(x)=0$ if $x\notin \support(X)$.  Since we only "shifted" the probability mass of $X''$ to the support of $X$, we have that $f_{X'}$ is a probability mass function and therefore $X'$ is well defined. 	
-	By construction, $|F_{X}(x_i)-F_{X'}(x_i)| = |F_{X}(x_i)-F_{X''}(x_i)|$ for every  $0 <  i < n$. For $i=n$ we have $|F_{X}(x_n)-F_{X'}(x_n)| = |1-1|=0$.
-	Since $|F_{X}(x)-F_{X'}(x)| = |F_{X}(x_i)-F_{X'}(x_i)|$ for every  $0\leq   i  \leq  n$  and $x_i<x<x_{i+1}$, we have that $d_K(X,X')=max_{i}|F_{X}(x_i)-F_{X'}(x_i)|\leq max_{i}|F_{X}(x_i)-F_{X''}(x_i)|\leq d_K(X,X'')$.
-\end{proof} 
-
-Both of the algorithms presented in this section are using the dual problem in order to find the optimal $m$-approximation of $X$. The dual problem is: given a random variable $X$ with $|X| = n$, and some $0 \leq \varepsilon \leq 1$, find a new random variable $X'$ such that $|X'|\leq m$ where $0< m \leq n$ and $d_K(X,X')$ is minimal. 
+The algorithms presented in this section are using a dual problem in order to find the optimal $m$-approximation of $X$. The dual problem is: given a random variable $X$ and $0 \leq \varepsilon \leq 1$, find a new random variable $X'$ such that $d_k(X,X')\leq \varepsilon$ and $|X'|$ is minimal. 
 
 We do not assume anything about the representation of the random variable $X$ given as an input to the $dual(X,\varepsilon)$ algorithm. However, we transform the representation of every given $X$, to the form of sorted CDF as described in line 1 in the algorithm, which takes $O(nlog(n))$ run-time and has to done only once. The $dual(X,\varepsilon)$ gets as input a random variable $X$ and some $\varepsilon$, the random variable $X$ is represented as in line 1, $X_{CDF} =\{(x_i, c_i)\}_{i=1}^n$ such that $c_i = Pr(X \leq x_i)$ and $\supp(X)=\{x_1 <\cdots < x_n\}$. In lines 3-4 we perform a single pass over $X_{CDF}$ starting from index 1 to find the last index where the cumulative distribution function of $X$ is less than $\varepsilon$, this index is now $f$. In lines 5-6 in the algorithm we start from the last index of $X_{CDF}$ which is $n$, and in decreasing order seek for the last index where the cumulative distribution function of $X$ is less than $1-\varepsilon$, this index is now $l$. The last part of the algorithm is a pass on all elements in $X_{CDF}$ between the indices $f$ and $l$ in order to construct the $m$-approximation random variable of $X$, $X'$. In lines 9-10 we check if the difference between the first element in the current set of indices (which we call $b$) and the last element in the current set of indices (which we call $e+1$) is less that $2\varepsilon$. If yes, we add the pair $\{(x_{b}, (c_b+c_e)/2 - s) \}$ to the set $S$. Otherwise, we add one to the counter of $e$. Note, the reason we need $s$ is to return the random variable $X'$ in a PDF representation since our main motivation is sum of random variables, this part takes $O(n)$ run-time.
 
