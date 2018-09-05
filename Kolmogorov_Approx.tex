@@ -11,6 +11,9 @@
 \setlength{\pdfpagewidth}{8.5in}  %Required
 \setlength{\pdfpageheight}{11in}  %Required
 
+\usepackage[activate={true,nocompatibility},final,tracking=true,kerning=true,spacing=true,factor=1100,stretch=10,shrink=100]{microtype}
+
+
 \usepackage{amssymb}
 \usepackage{amsmath,amsthm}
 \usepackage{float}
@@ -49,13 +52,13 @@
 \DeclareMathOperator{\Trim}{Trim}
 \DeclareMathOperator{\LTrim}{LTrim}
 \SetKwFunction{mEqOne}{mEqOne} 
-\DeclareMathOperator{\KlmApprox}{Approx}
-%\DeclareMathOperator{\OptTrim}{KolmogorovApprox}
+\DeclareMathOperator{\KlmApprox}{linApprox}
+\DeclareMathOperator{\BinsApprox}{binsApprox}
 \DeclareMathOperator{\OptTrim}{OptTrim}
 
 
   \pdfinfo{
-	/Title (Deadline estimation by using an optimal approximation of discrete random variables with respect to the Kolmogorov distance
+	/Title (Optimal Approximation of Discrete Random Variables for Estimation of Probabilities of Missing Deadlines
 	)
 	/Author ()}
 \setcounter{secnumdepth}{0} 
@@ -75,14 +78,14 @@ We present an efficient algorithm that, given a discrete random variable $X$ and
 \section{Introduction}
 
 
-Various approaches for approximation of probability distributions are studied in the literature~\cite{AMCR83,pavlikov2016cvar,PS77,vidyasagar2012metric,cohen2015estimating,CohenGW18}. 
-These approaches vary in the types random variables considered, how they are represented, and in the criteria used for evaluation of the quality of the approximations. In this paper we propose an approach for compressing the probability mass function of a random variable $X$ such that the errors added to queries such as $Pr(X\leq t)$, for  any $t>0$, is minimal. In other words, we minimise the Kolmogorov distance between the approximation and the original random variable. Our motivation for this is estimation of the probability for missing deadlines, as described, e.g.,in~\cite{cohen2015estimating} and in~\cite{Kashef18}. Specifically, when $X$ represents the probability distribution of the time to complete some complex schedule and we cannot afford to maintain the full table of its probability mass function, we propose an algorithm for producing a smaller table, whose size can be specified, such that probabilities for missing deadlines are preserved as much as possible. 
+Various approaches for approximation of probability distributions are studied in the literature~\cite{PS77,AMCR83,vidyasagar2012metric,cohen2015estimating,pavlikov2016cvar,CohenGW18}. 
+These approaches vary in the types random variables considered, how they are represented, and in the criteria used for evaluation of the quality of the approximations. In this paper we propose an approach for compressing the probability mass function of a random variable $X$ such that the errors added to queries such as $Pr(X\leq t)$, for  any $t>0$, is minimal. In other words, we minimise the Kolmogorov distance between the approximation and the original random variable. Our motivation for this is estimation of the probability for missing deadlines, as described, e.g., in Cohen et al.~\cite{cohen2015estimating,CohenGW18} and in~\cite{Kashef18}. Specifically, when $X$ represents the probability distribution of the time to complete some complex schedule and we cannot afford to maintain the full table of its probability mass function, we propose an algorithm for producing a smaller table, whose size can be specified, such that probabilities for missing deadlines are preserved as much as possible. 
 
 The main contribution of this paper is an efficient algorithm for computing the best possible approximation of a given random variable with a random variable whose size is not above a prescribed threshold, where the measures of the quality of the approximation and of its size are as specified in the following two paragraphs. 
 
-The case study examined in this paper is the problem of task trees with deadlines~\cite{cohen2015estimating,CohenGW18}. Hierarchical planning is a well-established field in AI~\cite{thomas1988hierarchical,erol1994htn,erol1996complexity}, and is still relevant nowadays~\cite{alford2016hierarchical,xiao2017hierarchical}. A hierarchical plan is a method for representing problems of automated planning in which the dependency among tasks can be given in the form of networks, here we focus on hierarchical plans represented by task trees. The leaves in a task tree are \emph{primitive} actions (or tasks), and the internal nodes are either \emph{sequence} or \emph{parallel} actions. The plans we deal with are of stochastic nature, and the task duration is described as probability distributions in the leaf nodes. We assume that the distributions are independent but {\em not} necessarily identically distributed and that the random variables are discrete and have a finite support. 
+The case study examined in this paper is the problem of task trees with deadlines~\cite{cohen2015estimating,CohenGW18}. A hierarchical plan is a method for representing problems of automated planning in which the dependency among tasks can be given in the form of networks, here we focus on hierarchical plans represented by task trees. The leaves in a task tree are \emph{primitive} actions (or tasks), and the internal nodes are either \emph{sequence} or \emph{parallel} actions. The plans we deal with are of stochastic nature, and the task duration is described as probability distributions in the leaf nodes. We assume that the distributions are independent but {\em not} necessarily identically distributed and that the random variables are discrete and have a finite support. 
 
-A sequence node denotes a series of tasks that should be performed consecutively, whereas a parallel node denotes a set of tasks that begin at the same time. A \emph{valid} plan is one that is fulfilled before some given \emph{deadline}, i.e., its \emph{makespan} is less than or equal to the deadline. The objective in this context is to compute the probability that a given plan is valid, or more formally computing $P(X<T)$, where $X$ is a random variable representing the makespan of the plan and $T$ is the deadline. The problem of finding the probability that a task tree satisfies a deadline is known to be NP-hard~\cite{mohring2001scheduling}. In fact, even the problem of summing a set of random variables is NP-hard~\cite{mohring2001scheduling}. This is an example of an explicitly given random variable that we need to estimate deadline meeting probabilities for.
+A sequence node denotes a series of tasks that should be performed consecutively, whereas a parallel node denotes a set of tasks that begin at the same time. A \emph{valid} plan is one that is fulfilled before some given \emph{deadline}, i.e., its \emph{makespan} is less than or equal to the deadline. The objective in this context is to compute the probability that a given plan is valid, or more formally computing $P(X<T)$, where $X$ is a random variable representing the makespan of the plan and $T$ is the deadline. The problem of finding the probability that a task tree satisfies a deadline is known to be NP-hard~\cite{cohen2015estimating}. In fact, even the problem of summing a set of random variables is NP-hard~\cite{mohring2001scheduling}. This is an example of an explicitly given random variable that we need to estimate deadline missing probabilities for.
 
 We measure the quality of an approximation scheme by the distance between random variables and their approximations. Specifically, we use the Kolmogorov distance which is  commonly used for comparing random variables in statistical practice and literature. Given two random variables $X$ and $X'$ whose cumulative distribution functions (cdf) are $F_X$ and $F_{X'}$, respectively, the Kolmogorov distance between $X$ and $X'$ is $d_K(X,X')= \sup_t |F_X(t) - F_{X'}(t)|$ (see, e.g.,~\cite{gibbons2011nonparametric}). We say that $X'$ is a good approximation of $X$ if $d_K(X,X')$ is small. This distance is the basis for the often used Kolmogorov-Smirnoff test for comparing a sample to a distribution or two samples to each other. 
 
@@ -95,13 +98,13 @@ Together, the exact notion of optimality of the approximation targeted in this p
 
 In these terms, the main contribution of the paper is an efficient (polynomial time and memory) algorithm that takes $X$ and $m$ as parameters and constructs an optimal $m$-approximation of $X$.
 
-The rest of the paper is organised as follows. In Section~\ref{sec:relwork} we describe how our work relates to other algorithms and problems studied in the literature. In Section~\ref{sec:alg} we detail the proposed algorithm, analyse its properties, and prove the main theorem. In Section~\ref{sec:exp} we demonstrate how the proposed approach performs on the problem of estimating the probability of missing deadlines in series-parallel schedules on randomly generated random variables and compare it to alternative approximation approaches from the literature. The paper is concluded with a discussion and with ideas for future work in Section~\ref{sec:discussion}.
+The rest of the paper is organised as follows. In Section~\ref{sec:relwork} we describe how our work relates to other algorithms and problems studied in the literature. In Section~\ref{sec:algEfficient} we detail the proposed algorithm, analyse its properties, and prove the main theorems. In Section~\ref{sec:exp} we demonstrate how the proposed approach performs on the problem of estimating the probability of missing deadlines in series-parallel schedules on randomly generated random variables and compare it to alternative approximation approaches from the literature. The paper is concluded with a discussion and with ideas for future work in Section~\ref{sec:discussion}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Related work}\label{sec:relwork}
 The most relevant work related to this paper is the papers on approximations of random variables in the context of estimating deadlines~\cite{cohen2015estimating,CohenGW18}. In these papers, $X'$ is defined to be a good approximation of $X$ if $F_{X'}(t) > F_{X}(t)$ for any $t$ and $\sup_t F_{X'}(t) - F_{X}(t)$ is small. Note that this measure is not a proper distance measure because it is not symmetric. The motivation given in these papers for using this type of approximation is for cases where overestimation of the probability of missing a deadline is acceptable but underestimation is not. In Section~\ref{sec:exp}, we consider the same case-studies examined by Cohen et al. and show how the algorithm proposed in this paper performs relative to the algorithms proposed there when both over- and under- estimations are allowed. As expected, the Kolmogorov distance between the approximated and the original random variable is considerably smaller when using the algorithm proposed in this paper. 
 
-In the technical level, the problem we study in this paper is similar to the problem of approximating a set of 2-D points by a step function. The study of this problem was motivated by query optimisation and histogram constructions in database management systems~\cite{applf12,applf13,applf14,applf17,applf18,Fournier2011} and computational geometry~\cite{diaz2001fitting,fournier2008fitting}. There are, however, two technically significant differences between the problem studied in the context of databases and the problem we analyse in this paper. The first difference is that in the context of approximation of random variables, the step function (which is the cumulative distribution function in our context)  must end with a value one, since we are dealing with random variables which sums to one. The second difference is that the first step is not counted because there is no need to put a value in the support of the approximated random variable to generate this first step. These cannot be addressed by adding a constant (two) to $m$ because the first step is always present and because the requirement to end with the value one, restricts the set of eligible step functions. See Section~\ref{sec:alg} for more details.
+In the technical level, the problem we study in this paper is similar to the problem of approximating a set of 2-D points by a step function. The study of this problem was motivated by query optimisation and histogram constructions in database management systems~\cite{applf12,applf13,applf14,applf17,applf18,Fournier2011} and computational geometry~\cite{diaz2001fitting,fournier2008fitting}. There are, however, two technically significant differences between the problem studied in the context of databases and the problem we analyse in this paper. The first difference is that in the context of approximation of random variables, the step function (which is the cumulative distribution function in our context)  must end with a value one, since we are dealing with random variables which sums to one. The second difference is that the first step is not counted because there is no need to put a value in the support of the approximated random variable to generate this first step. These cannot be addressed by adding a constant (two) to $m$ because the first step is always present and because the requirement to end with the value one, restricts the set of eligible step functions. See Section~\ref{sec:algEfficient} for more details.
 
 Another relevant prior work is the theory of Sparse Approximation (aka Sparse Representation) that deals with sparse solutions for systems of linear equations, as follows. 
 Given a matrix $D \in \mathbb{R}^{n \times p}$ and a vector $x \in \mathbb{R}^n$, the most studied sparse representation problem is finding the sparsest possible representation $\alpha \in \mathbb{R}^p$ satisfying $x = D\alpha$:
@@ -118,41 +121,25 @@ where $D$ is the lower unitriangular matrix, $x$ is related to $X$ such that the
 %The presented work is also related to the research on binning in statistical inference. Consider, for example, the problem of credit scoring~\cite{zeng2017comparison} that deals with separating good applicants from bad applicants where the Kolmogorov–Smirnov statistic KS is a standard measure. The KS comparison is often preceded by a procedure called binning where small values in the the probability mass function are moved to nearby values. There are many methods for binning~\cite{mays2001handbook,refaat2011credit,bolton2010logistic,siddiqi2012credit}.
 %In this context, our algorithm can be considered as a binning strategy that provides optimality guarantees with respect to the Kolmogorov distance.
 
-Our study is also related to the work of Pavlikov and Uryasev~\cite{pavlikov2016cvar}, where a procedure for producing a random variable $X'$ that optimally approximates a random variable $X$ is presented. Their approximation scheme, achieved using linear programming, is designed for a different notion of distance called CVaR. The contribution of the present work in this context is that our method is direct, not using linear programming, thus allowing tighter analysis of time and memory complexities. Also, our method is designed for minimising the Kolmogorov distance that is more prevalent in applications. For comparison, in Section~\ref{sec:exp} we briefly discuss the performance of linear programming approach similar to the one proposed in~\cite{pavlikov2016cvar} for the Kolmogorov distance and compare it our algorithm. 
+Our study is also related to the work of Pavlikov and Uryasev~\shortcite{pavlikov2016cvar}, where a procedure for producing a random variable $X'$ that optimally approximates a random variable $X$ is presented. Their approximation scheme, achieved using linear programming, is designed for a different notion of distance called CVaR. The contribution of the present work in this context is that our method is direct, not using linear programming, thus allowing tighter analysis of time and memory complexities. Also, our method is designed for minimising the Kolmogorov distance that is more prevalent in applications. For comparison, in Section~\ref{sec:exp} we briefly discuss the performance of linear programming approach similar to the one proposed in~\cite{pavlikov2016cvar} for the Kolmogorov distance and compare it our algorithm. 
 
 A problem very similar to ours is termed ``order reduction'' by Vidyasagar in~\cite{vidyasagar2012metric}. There, the author defines an information-theoretic based distance between discrete random variables and studies the problem of finding a variable whose support is of size $m$ and its distance from $X$ is as small as possible (where $X$ and $m$ are given). The only difference between this and the problem studied in this paper, is that Vidyasagar examines a different notion of distance. Vidyasagar proves that computing the distance (that he considers) between two probability distributions, and computing the optimal reduced order approximation, are both NP-hard problems, because they can both be reduced to nonstandard bin-packing problems. He then develops efficient greedy approximation algorithms. In contrast, our study shows that there are efficient solutions to these problems when the Kolmogorov distance is considered. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{An algorithm for optimal approximation}\label{sec:algEfficient}
-In the scope of this section, let $X$ be a random variable such that $|X|=n$, and let  $0<m\leq n$. We present algorithms for finding optimal $m$-approximations of $X$. The first algorithm is $binsearchApprox(X,m)$ (Algorithm~\ref{alg:naive}) which runs in time of $O(n^2\log(n))$. The second algorithm, $linApprox(X,m)$ (Algorithm~\ref{alg:linear}), runs in time of $O(n\log(n))$. 
-%We present both $binsearchApprox(X,m)$ and $linApprox(X,m)$ since Algorithm~\ref{alg:linear} is based on Algorithm~\ref{alg:naive} but carry major run-time improvement.
+\section{Algorithms for optimal approximation}\label{sec:algEfficient}
+%In the scope of this section, let $X$ be a random variable ket $m$ be such that  $0<m\leq |X|$. We present algorithms for finding optimal $m$-approximations of $X$. 
 
-%We begin our dissection by presenting a useful fact that it is enough to limit our search to approximations $X'$s such that $\support(X') \subseteq \support(X)$:
-%
-%\begin{lemma}\label{lem:supContained}
-%	For every random variable $X''$ there is a random variable $X'$ such that $\support(X') \subseteq \support(X)$ and $d_{K}(X,X')\leq d_{K}(X,X'')$.
-%\end{lemma}
-%
-%\begin{proof}
-%	Let $\{x_1 <\cdots<x_n\} = \support(X)$, and let $x_0 = -\infty, x_{n+1}=\infty$. Consider the random variable $X'$ whose probability mass function is
-%	$f_{X'}(x_i) = P(x_{i-1} < X'' \leq x_i)$ for $i=1,\dots,n-1$,  $f_{X'}(x_n) = P(x_{n-1} < X'')$, and $F_{X'}(x)=0$ if $x\notin \support(X)$.  Since we only "shifted" the probability mass of $X''$ to the support of $X$, we have that $f_{X'}$ is a probability mass function and therefore $X'$ is well defined. 	
-%	By construction, $|F_{X}(x_i)-F_{X'}(x_i)| = |F_{X}(x_i)-F_{X''}(x_i)|$ for every  $0 <  i < n$. For $i=n$ we have $|F_{X}(x_n)-F_{X'}(x_n)| = |1-1|=0$.
-%	Since $|F_{X}(x)-F_{X'}(x)| = |F_{X}(x_i)-F_{X'}(x_i)|$ for every  $0\leq   i  \leq  n$  and $x_i<x<x_{i+1}$, we have that $d_K(X,X')=max_{i}|F_{X}(x_i)-F_{X'}(x_i)|\leq max_{i}|F_{X}(x_i)-F_{X''}(x_i)|\leq d_K(X,X'')$.
-%\end{proof} 
+We begin with presenting an algorithm for solving a problem that is dual to the $m$-approximation problem.  The dual problem is: given a random variable $X$ and $0 \leq \varepsilon \leq 1$, find a new random variable $X'$ such that $d_k(X,X')\leq \varepsilon$ and $|X'|$ is minimal. 
 
-The algorithms presented in this section are using a dual problem in order to find the optimal $m$-approximation of $X$. The dual problem is: given a random variable $X$ and $0 \leq \varepsilon \leq 1$, find a new random variable $X'$ such that $d_k(X,X')\leq \varepsilon$ and $|X'|$ is minimal. 
-
-We do not assume anything about the representation of the random variable $X$ given as an input to the $dual(X,\varepsilon)$ algorithm. However, we transform the representation of every given $X$, to the form of sorted CDF as described in line 1 in the algorithm, which takes $O(nlog(n))$ run-time and has to done only once. The $dual(X,\varepsilon)$ gets as input a random variable $X$ and some $\varepsilon$, the random variable $X$ is represented as in line 1, $X_{CDF} =\{(x_i, c_i)\}_{i=1}^n$ such that $c_i = Pr(X \leq x_i)$ and $\supp(X)=\{x_1 <\cdots < x_n\}$. In lines 3-4 we perform a single pass over $X_{CDF}$ starting from index 1 to find the last index where the cumulative distribution function of $X$ is less than $\varepsilon$, this index is now $f$. In lines 5-6 in the algorithm we start from the last index of $X_{CDF}$ which is $n$, and in decreasing order seek for the last index where the cumulative distribution function of $X$ is less than $1-\varepsilon$, this index is now $l$. The last part of the algorithm is a pass on all elements in $X_{CDF}$ between the indices $f$ and $l$ in order to construct the $m$-approximation random variable of $X$, $X'$. In lines 9-10 we check if the difference between the first element in the current set of indices (which we call $b$) and the last element in the current set of indices (which we call $e+1$) is less that $2\varepsilon$. If yes, we add the pair $\{(x_{b}, (c_b+c_e)/2 - s) \}$ to the set $S$. Otherwise, we add one to the counter of $e$. Note, the reason we need $s$ is to return the random variable $X'$ in a PDF representation since our main motivation is sum of random variables, this part takes $O(n)$ run-time.
-
-
+We assume that the input to Algorithm~\ref{alg:dual} that solves the dual problem is a representation of the variable $X$ as a sorted CDF, i.e.,  as an array $X_{CDF}=\{(x_i, c_i)\}_{i=1}^n$ such that $c_i = Pr(X \leq x_i)$ and $\supp(X)=\{x_1 <\cdots < x_n\}$. In lines 2 we perform a single pass over $X_{CDF}$ starting from index 1 to find the last index where the cumulative distribution function of $X$ is less than $\varepsilon$, this index is now $f$. In line 3 we start from the last index of $X_{CDF}$ which is $n$, and in decreasing order seek for the last index where the cumulative distribution function of $X$ is less than $1-\varepsilon$, this index is now $l$. The last part of the algorithm is a pass on all elements in $X_{CDF}$ between the indices $f$ and $l$ in order to construct the $m$-approximation random variable of $X$, $X'$. In lines 6-7 we check if the difference between the first element in the current set of indices (which we call $b$) and the last element in the current set of indices (which we call $e+1$) is less than $2\varepsilon$. If yes, we add the pair $\{(x_{b}, (c_b+c_e)/2 - s) \}$ to the set $S$. Otherwise, we add one to the counter of $e$. 
 
 \begin{algorithm}
 	\DontPrintSemicolon
 	%Let $\{(x_i, c_i)\}_{i=1}^n$ be such that $c_i = Pr(X \leq x_i)$ and $\supp(X)=\{x_1 <\cdots < x_n\}$.\;
     $f \gets 0$, $l \gets n$+1\; 
-    \While{$c_{f +1} \leq \varepsilon$}{$f \gets f + 1$}
+    \lWhile{$c_{f +1} \leq \varepsilon$}{$f \gets f + 1$}
 
-    \While{$c_{l -1} \geq  1-\varepsilon$}{$l \gets l -1$}
+    \lWhile{$c_{l -1} \geq  1-\varepsilon$}{$l \gets l -1$}
 
 	$S \gets \emptyset$, $s \gets 0$,$b \gets f$, $e \gets f$\;
 	\While{$e<l$}{
@@ -173,14 +160,26 @@ We do not assume anything about the representation of the random variable $X$ gi
 \SetKwRepeat{Do}{do}{while}
 %which c? why -s? name without any meaning, cant understand
 
-\begin{theorem}\label{the:complexityDual}
-	The $dual(X,\varepsilon)$ algorithm runs in time $O(n)$, using $O(n)$ memory where $n=|X|$.
+\begin{theorem}\label{the:correctnessDual}
+	If  $\{(x_i, c_i)\}_{i=1}^n$ is such that $c_i=Pr(X \leq x_i)$ and $\supp(X)=\{x_1 < \cdots < x_n\}$ then  
+    $$dual(\{(x_i, c_i)\}_{i=1}^n,\varepsilon) \in \underset{X'\in \bar{\mathcal{B}}(X,\varepsilon)}{\operatorname{arg\,min}}\, |X'|$$  where $\bar{\mathcal{B}}(X,\varepsilon)=\{X'\colon d_K(X,X')\leq \varepsilon\}$.
 \end{theorem}
 \begin{proof}
-	This algorithm describes a single pass over the random variable $X$. Lines 3-4 and lines 5-6 are easy to follow, each takes $O(n)$ in the worst case. Lines 8-12 also describe one pass over $X$ since the counter $e$ is updated to $e+1$ at most $n$ times. All together we get run-time complexity of $O(3n)$ = $O(n)$. We are constructing the set $S$ which is of size $n$ in the worst case, therefore, memory complexity is also $O(n)$. 
+The number of level sets of the CDF of $X'$ is minimal: (1) The first and the last sets are of maximal length; (2) By construction, an extension of any of the other sets to the right will generate a random variable whose Kolmogorov distance from $X$ is bigger than $\varepsilon$; and (3) Extension of a level set to the left may either leave the number of level sets unchanged or combine it with the previous set, which will enlarge the Kolmogorov distance because it is equivalent to extending the previous set to the right.
 \end{proof}
 
-The first technique we present is the $binsearchApprox(X,m)$ algorithm which is based on the work done by D{\'i}az-B{\'a}nez and Mesa~\cite{diaz2001fitting}. There are couple of significant changes between our $binsearchApprox(X,m)$ algorithm and the algorithm suggested by D{\'i}az-B{\'a}nez and Mesa~\cite{diaz2001fitting} addressing the differences presented in the Related Work section~\ref{sec:relwork}. The algorithm $binsearchApprox(X,m)$ gets as input a random variable $X$ and some number $m$. Again, we do not mind the original representation of $X$ since we can transform it to a sorted CDF representation in $O(nlog(n))$ run-time as in line 1 which we call $X_{CDF}$. In lines 3-8 we compute all possible errors, in other words, all possible $d_{K}(X,X')$ such that $X'$ is an approximation of $X$ and $\support(X') \subseteq \support(X)$. The error is just the difference between the CDF values of every two elements in $X_{CDF}$. After computing the set $E$, we sort it (line 9) in order to perform a binary search in the last part of the algorithm. In lines 10-19 we perform a binary search over the set $E$, in every step of the binary search we run the $X' = dual(X,\varepsilon)$ algorithm. If the size of $|X'|>m$ then we know that the error $\varepsilon$ is too small and need to extend the search in the right side of $E$, if the size of $|X'|<m$ then we know that the error $\varepsilon$ is too big and need to extend the search in the left side of $E$, otherwise we found the correct $m$. We run the search twice to handle the extreme case where $m \notin \{\forall \varepsilon\in E: |dual(X,\varepsilon)|\}$ and return the smallest $m'$ closest to $m$.
+
+
+\begin{theorem}\label{the:complexityDual}
+	$dual(\{(x_i, c_i)\}_{i=1}^n,\varepsilon)$ runs in time $O(n)$, using $O(n)$ memory.
+\end{theorem}
+\begin{proof}
+This algorithm describes a single pass over $\{(x_i, c_i)\}_{i=1}^n$. Line 2 and line 3 are easy to follow, each takes $O(n)$ in the worst case. Lines 5-9 also describe a single pass since the counter $e$ is updated to $e+1$ at most $n$ times. All together we get run-time complexity of $O(n)$. We are constructing the set $S$ which is of size $n$ in the worst case, therefore, memory complexity is also $O(n)$. 
+\end{proof}
+
+
+
+The first technique we present is the $binsApprox(X,m)$ algorithm which is based on the work done by D{\'i}az-B{\'a}nez and Mesa~\cite{diaz2001fitting}. There are couple of significant changes between our $binsApprox(X,m)$ algorithm and the algorithm suggested by D{\'i}az-B{\'a}nez and Mesa~\shortcite{diaz2001fitting} addressing the differences presented in the Related work section. The algorithm $binsApprox(X,m)$ gets as input a random variable $X$ and some number $m$. Again, we do not mind the original representation of $X$ since we can transform it to a sorted CDF representation in $O(nlog(n))$ run-time as in line 1 which we call $X_{CDF}$. In lines 3-8 we compute all possible errors, in other words, all possible $d_{K}(X,X')$ such that $X'$ is an approximation of $X$ and $\support(X') \subseteq \support(X)$. The error is just the difference between the CDF values of every two elements in $X_{CDF}$. After computing the set $E$, we sort it (line 9) in order to perform a binary search. In lines 10-19 we perform a binary search over the set $E$, in every step of the binary search we run the $X' = dual(X,\varepsilon)$ algorithm. If the size of $|X'|>m$ then we know that the error $\varepsilon$ is too small and need to extend the search in the right side of $E$, if the size of $|X'|<m$ then we know that the error $\varepsilon$ is too big and need to extend the search in the left side of $E$, otherwise we found the correct $m$. We run the search twice to handle the extreme case where $m \notin \{\forall \varepsilon\in E: |dual(X,\varepsilon)|\}$ and return the smallest $m'$ closest to $m$.
  
 
 \begin{algorithm}
@@ -199,10 +198,10 @@ The first technique we present is the $binsearchApprox(X,m)$ algorithm which is 
     Let $e_1<\cdots<e_{n'}$ be such that $E=\{e_1,\dots,e_{n'}\}$ \;
     
     \For{$i \gets 1 \textbf{ to } 2$}{
-        $l\gets 1$, $r \gets n'$, $k \gets 1$ \;
-        \Do{$k \neq k'$}{
+        $l\gets 1$, $r \gets n'$, $k \gets 1$, $k' \gets 0$ \;
+        \While{$k \neq k'$}{
                 $k' \gets k$,$k \gets \lceil (l + r)/2 \rceil$\;
-        		$X' \gets dual(X,e_k)$, $m' \gets |X'|$\;
+        		$m' \gets |dual(X,e_k)|$\;
         		\lIf{$m' < m$}{
         		    $l \gets k$
         		}
@@ -215,37 +214,56 @@ The first technique we present is the $binsearchApprox(X,m)$ algorithm which is 
         }
         $m \gets m'$\;
     }
-    \Return{X'}
+    \Return{$dual(X,e_k)$}
 
-	\caption{$binsearchApprox(X,m)$}   
+	\caption{$binsApprox(X,m)$}   
 	\label{alg:naive}
 \end{algorithm}
 
-\begin{theorem}\label{the:complexityDual}
-	The $binsearchApprox(X,m)$ algorithm runs in time $O(n^2log(n))$, using $O(n^2)$ memory where $n=|X|$.
+
+\begin{theorem}\label{the:correctnessBinsearch}
+	   
+    $binsApprox(X,m) \in \underset{X' \in \bar{\mathcal{B}}(X,m) }{\operatorname{arg\,min}}\, d_K(X,X')$ where $\bar{\mathcal{B}}(X,m)=\{X'\colon |X'| \leq m\}$.
+\end{theorem}
+\begin{proof}
+Since lines 10-18 is a binary search of the smallest $e_k\in E$ such that $|dual(X,e_k)|\leq m$, we only need to prove that $E=E'=\{ d_K(X,dual(X,m)) \colon m=1,\dots,n\}$. To see that this is true, note that every element in $E'$ corresponds to a distance of a level set of the CDF of $dual(X,m)$ from the CDF of $X$. Line 6 of the algorithm adds all the distances from level sets of height zero, Line 8 adds the distances from level sets of heigt one, and Line 7 adds all the distances from all other possible level sets.
+\end{proof}
+
+\begin{theorem}\label{the:complexityBinsearch}
+	The $binsApprox(X,m)$ algorithm runs in time $O(n^2log(n))$, using $O(n^2)$ memory where $n=|X|$.
 \end{theorem}
 \begin{proof}
 	In the first part of the algorithm, lines 2-8, we construct the set $E$ which takes $O(n^2)$ run-time. In the second part of the algorithm, line 9, we sort the set $E$ which takes $O(n^2log(n^2)) = O(n^2log(n))$  run-time. The third part of the algorithm, lines 10-19, describes a binary sort over the set $E$ where in each step of the sorting we run the $dual$ algorithm, which takes $O(n log(n^2)) = O(n log(n))$ run-time. We run this part twice then we get $O(2n log(n))$. All together, the run-time complexity is $O(n^2+n^2log(n)+2n log(n)) = O(n^2log(n))$ and the memory complexity is for storing the set $E$ which is $O(n^2)$.
 \end{proof}
 
-As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddlebackApprox(X,m)$ that takes $O(n^2)$ run-time, this technique is very similar to $linApprox(X,m)$ algorithm. The algorithm $saddlebackApprox(X,m)$ gets as input a random variable $X$ and some number $m$. Again, we represent $X$ as a sorted CDF in $O(nlog(n))$ run-time as in line 1 and call it $X_{CDF}$. In line 4 We describe implicitly the sorted matrix $E$, and in lines 3-7 we perform a search over this matrix, in every step of the search we run the $X' = dual(X,\varepsilon)$ algorithm. If the size of $|X'|>m$ then we know that the error $e$ is too small and need to extend the search in the lower side of the matrix, if the size of $|X'|<m$ then we know that the error $e$ is too big and need to extend the search in the right side of the matrix and store this $e$ in $S$. We store in set $S$ all possible candidates for the correct $e$ and in line 8 we get the maximal $m$ with the minimal $e$ value.
+Towards an improved algorithm let us introduce the matrix $E=(e_{i,j})_{i,j=1}^\infty$ defined by:
+	$$e_{i,j} = \begin{cases}
+	1-c_{n+1-j}   & \text{if } j \leq n \wedge  i = n ; \\
+	c_i & \text{if } i \leq n \wedge  j = n + 1; \\
+	( c_i - c_{n+1-j})/2  & \text{if } i < n \wedge j \leq n \wedge i{+}j\geq n; \\
+	0  & \text{if }  i{+}j < n; \\
+	1  & \text{otherwise}.
+	\end{cases}$$
+Where $c_1,\dots,c_n$ are as in the first line of Algorithm~\ref{alg:naive}. It is easy to see that the set of values in this matrix are the elements of the set $E$ in Algorithm~\ref{alg:naive}. An additional useful fact is that $E$ is a sorted matrix:
+\begin{lemma}\label{the:sortedMatrix}
+	If $i\leq i'$ and $j\leq j'$ then $e_{i,j}\leq e_{i',j'}$.
+\end{lemma}
+\begin{proof}
+CDF representation of a random variable is a monotonically increasing function. Therefore, $\forall i,j$, $ 0\leq c_i - c_{n+1-j}\leq c_i - c_{n+1-(j+1)} $ and $ \forall i,j$, $0 \leq c_i - c_{n+1-j}\leq c_{i+1} - c_{n+1-j} $, moreover, 0 is the minimal value of $E$. The elements in the last row and the last column in $E$ are keeping the terms of sorted matrix. It suffices to compare row $n$ with row $n-1$ and show that $1-c_{n+1-j}\geq ( c_{n-1} - c_{n+1-j})/2$. After some manipulation we get that $2-c_{n+1-j}\geq c_{n-1}$ which is true because $0 \leq c\leq 1$. Next, it is suffice to compare column $n$ with only column $n+1$ and show that $c_i\geq ( c_{i} - c_{n+1-n})/2$. After some manipulation we get that $2c_i\geq c_{i}-c_1$ which is true because $0 \leq c_1 \leq c_i\leq 1$.
+\end{proof}
+
+The fact that this matrix is sorted allows us to use the saddleback search algorithm listed as Algorithm~\ref{alg:saddleback}. The algorithm starts at the top right entry of the matrix $(e_{i,j})_{i=1..n,j=1..(n+1)}$ and traverses it as follows. If it hits an entry $e$ such that $|dual(X,e)| \leq m$ it goes left, otherwise it goes down. This assures that the minimal $e$ such that $|dual(X,e)| \leq m$ is visited after at most $n+1$ steps. Data is collected along the traversal and the optimal random variable is found by brute-force.
+
 
 
 \begin{algorithm}
 	\DontPrintSemicolon
 	Let $\{(x_i, c_i)\}_{i=1}^n$ be such that $c_i=Pr(X \leq x_i)$ and $\supp(X)=\{x_1 < \cdots < x_n\}$.\;
-    $i \gets 1$, $j \gets \lceil n/2 \rceil$, $S \gets \emptyset$\;
+    $i \gets 1$, $j \gets n$+1, $S \gets \emptyset$\;
 
-	\While{$i < \lfloor n/2 \rfloor + 1 \wedge j \geq 2$}
-	{
-% 		$ e \gets \begin{cases}
-% 			c_j   & \text{if } i=\lfloor n/2 \rfloor+1; \\
-% 			1-c_i & \text{if } j=\lceil n/2 \rceil; \\
-% 			(c_{n+1-j} {-} c_i)/2  & \text{otherwise}
-% 		\end{cases}$\;
-		
-		
-		$X' \gets dual(X,e_{i,j})$, $m' \gets |X'|$\;
+	\While{$i < n \wedge j \geq 1$}
+	{	
+		$m' \gets |dual(X,e_{i,j})|$\;
 	
 		\lIf {$m'  \leq m$}
 		{
@@ -258,19 +276,33 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 	$e \gets \min\{e\colon (m',e) \in \underset{(m',e)\in S}{\operatorname{arg\,max}}\, m'\}$\;
 	\Return{$dual(X,e)$}
 	
-	\caption{$saddlebackApprox(X,m)$}   
+	\caption{$sdlbkApprox(X,m)$}   
 	\label{alg:saddleback}
 \end{algorithm}
 
 
+\begin{theorem}\label{the:correctnessSaddleback}
+	   
+    $sdlbkApprox(X,m) {\in} \underset{X' \in \bar{\mathcal{B}}(X,m) }{\operatorname{arg\,min}}\, d_K(X,X')$ where $\bar{\mathcal{B}}(X,m)=\{X'\colon |X'| \leq m\}$.
+\end{theorem}
+\begin{proof}
+The algorithm traverses all the frontier between those $e$s that satisfy $|dual(X,e)| \leq m$ and those that do not satisfy it. Since all the entries that satisfy the condition are recorded in $S$ and considered in the brute-force phase in line 7, the minimal satisfying $e$ is found.
+\end{proof}
+
+\begin{theorem}\label{the:complexitySaddleback}
+	The $sdlbkApprox(X,m)$ algorithm runs in time $O(n^2)$, using $O(n)$ memory where $n=|X|$.
+\end{theorem}
+\begin{proof}
+	At each step of the loop in lines 3-6, either $j$ decreases or $i$ increases, thus the loop can be executed at most $2n$ times. Since we execute $dual$ once ion a loop round, the total time complexity is $O(n^2)$. Storing visited states in $S$ on line 6 requires  $O(n)$ memory.
+\end{proof}
+
+The problem with the saddleback algorithm is that it needs to run $dual$ at every step so it has a quadratic time complexity. Since we cannot find the required entry of the matrix in less than $n$ steps, we can only reduce the complexity by proposing an algorithm that does not executes $dual$ in all the steps, only in $\log(n)$ of them. Such an algorithm, based on Section~2.1 in~\cite{Fournier2011}, is listed as Algorithm~\ref{alg:linear}. The algorithm maintains a set $S$ of sub-matrices. At each round of its execution, each sub-matrix is split to four and then about three quarters of the matrix are discarded. At the end, at most four scalar matrices remain containing the index of the entry we seek.
+
 \begin{algorithm}
 		\DontPrintSemicolon
 		Let $\{(x_i, c_i)\}_{i=1}^n$ be such that $c_i=Pr(X \leq x_i)$ and $\supp(X)=\{x_1 < \cdots < x_n\}$.\;
-		
-		$w \gets 2^{\lceil \log_2(n/2) \rceil}$,
-		$h \gets 2^{\lceil \log_2(n/2+1) \rceil}$ \;
-				
-		$S \gets  \{ ((1, 1),(w,h)) \}$, $S' \gets \emptyset$\;
+
+		$S \gets  \{ ((1, 1),(n,n+1)) \}$, $S' \gets \emptyset$\;
 		
 		
 		\While{$S \neq S'$}
@@ -282,7 +314,7 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 			$e^+ {\gets} median(\{ e_{i_2,j_2} \colon ((i_1,j_1),(i_2,j_2)) \in S \}) $\;			
 
 			\For{$ e \in \{ e^-,e^+ \}$} {
-				$X' \gets dual(X,e)$, $m' \gets |X'|$\;
+				$m' \gets |dual(X,e)|$\;
 	
 				\If {$m' \leq m$} {
 					$S \gets$ $S \setminus \{ ((i_1,j_1),(i_2,j_2)) \in S \colon e_{i_1,j_1} > e \}$ \;
@@ -303,9 +335,10 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 		\caption{$linApprox(X,m)$}   
 		\label{alg:linear}
 	\end{algorithm}
-
-	\begin{procedure}
+{
+	\begin{algorithm}
 		\DontPrintSemicolon
+		
 		$j^- \gets \lfloor (j_1+j_2)/2 \rfloor$,
 		$j^+ \gets \lceil (j_1+j_2)/2 \rceil$\;
 		$i^- \gets \lfloor (i_1+i_2)/2 \rfloor$,
@@ -317,237 +350,26 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 			$((i^+, j_1), (i_2, j^-)),
 			((i^+, j^+), (i_2, j_2))    \}$}
 		
-		\caption{{$split(((i_1,j_1),(i_2,j_2)))$}()}
+		\caption{$split(((i_1,j_1),(i_2,j_2)))$}
 		\label{proc:split}
-	\end{procedure}
+	\end{algorithm}
+}	
 	
 	
-	
-	Let 
-	$$e_{i,j} = \begin{cases}
-	c_j   & \text{if } j \leq n \wedge  i > n; \\
-	1-c_i & \text{if } i \leq n \wedge  j \geq n; \\
-	%(c_{n+1-j} {-} c_i)/2  & \text{if } i \leq n \wedge i{+}j\leq n{+}1; \\
-	
-	%(c_{n+1-i} {-} c_i)/2  & \text{if } j \leq n \wedge i{+}j\leq n; \\
-		
-	(c_{p-1 +i} {-} c_{p+1-j})/2  & \text{if } i \leq n \wedge i{+}j\leq n{+}1; \\
-	
-	(c_{p-1 +i} {-} c_{p+1-i})/2  & \text{if } i \leq n \wedge i{+}j\leq n{+}1; \\ 
-	
-
-	\infty  & \text{otherwise}.
-	\end{cases}$$
-
-
-
-
-
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% \section{An algorithm for optimal approximation}\label{sec:alg}
-% In the scope of this section, let $X$ be a given random variable with a finite support of size $n$, and let  $0<m\leq n$ be a given complexity bound. The section evolves by developing notations and by collecting facts towards an algorithm for finding an optimal $m$-approximation of $X$.
-
-% The first useful fact is that it is enough to limit our search to approximations $X'$s such that $\support(X') \subseteq \support(X)$:
-
-% \begin{lemma}\label{lem:supContained}
-% 	For every random variable $X''$ there is a random variable $X'$ such that $\support(X') \subseteq \support(X)$ and $d_{K}(X,X')\leq d_{K}(X,X'')$.
-% \end{lemma}
-
-% \begin{proof}
-% 	Let $\{x_1 <\cdots<x_n\} = \support(X)$, and let $x_0 = -\infty, x_{n+1}=\infty$. Consider the random variable $X'$ whose probability mass function is
-% 	$f_{X'}(x_i) = P(x_{i-1} < X'' \leq x_i)$ for $i=1,\dots,n-1$,  $f_{X'}(x_n) = P(x_{n-1} < X'')$, and $F_{X'}(x)=0$ if $x\notin \support(X)$.  Since we only "shifted" the probability mass of $X''$ to the support of $X$, we have that $f_{X'}$ is a probability mass function and therefore $X'$ is well defined. 	
-% 	By construction, $|F_{X}(x_i)-F_{X'}(x_i)| = |F_{X}(x_i)-F_{X''}(x_i)|$ for every  $0 <  i < n$. For $i=n$ we have $|F_{X}(x_n)-F_{X'}(x_n)| = |1-1|=0$.
-% 	Since $|F_{X}(x)-F_{X'}(x)| = |F_{X}(x_i)-F_{X'}(x_i)|$ for every  $0\leq   i  \leq  n$  and $x_i<x<x_{i+1}$, we have that $d_K(X,X')=max_{i}|F_{X}(x_i)-F_{X'}(x_i)|\leq max_{i}|F_{X}(x_i)-F_{X''}(x_i)|\leq d_K(X,X'')$.
-% \end{proof}
-
-% %Next, note that every random variable $X''$ with support of size at most $m$ that is contained in $\support(X)$ can be described by first setting the (at most $m$) elements of the support of $X''$; then for every such option, determine $X''$ by setting probability values for the elements in the chosen support of $X'$, and setting $0$ for rest of the elements.
-
-% For a set $S\subseteq \support(X)$, let $\mathbb{X}_S$ denote the set of random variables whose supports are contained in $S$. In Step 1 below, we identify a random variable in $\mathbb{X}_S$  that minimizes the Kolmogorov distance from $X$. We denote the Kolmogorov distance between this variable and $X$ by $\varepsilon(X,S)$. Then, in Step 2, we show how to efficiently find a set $S \subseteq \support(X)$ whose size is smaller or equal to $m$ that minimizes $\varepsilon(X,S)$. Then, in Step 3, an optimal $m$-approximation is constructed by taking a minimal approximation in $\mathbb{X}_S$ where $S$ is the set of size $m$ that that minimizes $\varepsilon(X,S)$. 
-
-% \subsection*{Step 1: Finding an $X'$ in $\mathbb{X}_S$ that minimizes $d_K(X,X')$}
-
-
-% We first fix a set $S\subseteq \support(X)$ and among all the random variables in $\mathbb{X}_S$ find one with a minimal distance from $X$. Denote the elements of $S$ in increasing order by $S=\{x_1<\dots<x_m\}$ and let $x_0=-\infty$ and $x_{m+1}=\infty$. Consider the following weight function:
-
-% \begin{definition}\label{def:weight} For $0\leq i \leq m$ let
-% 	\[
-% 	w(x_i,x_{i+1})=
-% 	\begin{cases}
-% 	P(x_i < X < x_{i+1}) & \text{if $i=0$ or $i = m$;} \\
-% 	P(x_i < X < x_{i+1})/2 & \text{otherwise.} \\	
-% 	\end{cases}
-% 	\]
-% \end{definition}
-% For each $1 <  i \leq m$ let $\hat x_i$ be the maximal element of $\support(X)$ that is smaller than $x_i$. 
-% Note that, for $1\leq i \leq m$, $P(x_i < X < x_{i+1}) = F_X(\hat x_{i+1}) - F_X(x_i)$, a fact that we will use throughout this section.
-
-% \begin{definition}\label{def:error}
-% Let $\varepsilon(X,S) = \max\limits_{i=0,\dots,m} w(x_{i}, x_{i+1})$.
-% \end{definition}
-
-
-
-% We first show that $\varepsilon(X,S)$ is a lower bound for the distance between random variable in $\mathbb{X}_S$ and $X$. Then, we present a random variable $X'\in \mathbb{X}_S$ such that $d_K(X,X')=\varepsilon(X,S)$. It then follows that $X'$ is closets to $X$ in $\mathbb{X}_S$.
-
-% %The intuition behind choosing these specific weights and $\varepsilon(X,S)$ being a lower bound is as follows.  Since for every $X'\in\mathbb{X}_S$ the probability mass of $X'$ for the elements not in $S$ are set to $0$, we have that $F_{X'}(\hat x_{i+1})=F_{X'}(x_i)$. Therefore the distance between $X'$ and $X$ at points $x_i$ and $\hat x_{i+1}$ that we have to take into additional account is increased by $F_X(\hat x_{i+1})-F_X(x_i) = P(x_i < X < x_{i+1})$.
-
-% %Formally we have the following.
-
-% \begin{proposition}\label{prop:minimal}
-% 	If $X'\in\mathbb{X}_S$ then $d_K(X,X') \geq \varepsilon(X,S)$.
-% \end{proposition}
-
-% \begin{proof}
-	
-	
-% 	By definition, for each $0\leq i\leq m$, $d_K(X,X') \geq \max \{|F_X(\hat x_{i+1}) - F_{X'}(\hat x_{i+1})|,|F_X(x_i) - F_{X'}(x_i)| \}$. Note that $F_{X'}(\hat x_{i+1})=F_{X'}(x_i)$ since the probability of  elements not in $S$ is  $0$.
-	
-% 	If $i=0$, that is $x_i=-\infty$, we have that $F_X(x_i)=F_{X'}(x_i)=F_{X'}(\hat x_{i+1})=0$ and therefore $d_K(X,X') \geq |F_X(\hat x_{i+1})| = |F_X(\hat x_{i+1}) - F_{X}(x_i)| =  P(x_i < X < x_{i+1})= w(x_i,x_{i+1})$.
-	
-% 	If $i =m$, that is $x_{i+1}=\infty$, we have that $F_X(\hat x_{i+1})=F_{X'}(\hat x_{i+1})=F_{X'}(x_i)=1$. 
-% 	and therefore $d_K(X,X') \geq |1-F_X(\hat x_i)| = |F_X(\hat x_{i+1}) - F_{X}(x_i)| =  P(x_i < X < x_{i+1}) = w(x_i,x_{i+1})$. 
-	
-% 	%  we have that $F_X(x_i)=F_{X'}(x_i)=F_{X'}(\hat x_{i+1})=0$ 
-% 	% 
-% 	% 
-% 	% 
-% 	% We break the proof for the closed intervals where each support variable $x_i$ is a proper number, and for the open intervals where a support variable is either $-\infty$ or $\infty$.
-	
-% 	Otherwise for every $1\leq i< m$,  we use the fact that $max\{|a|,|b|\} \geq |a-b|/2$ for every $a,b\in\mathbb{R}$, to deduce that $d_K(X,X') \geq 1/2| F_X(\hat x_{i+1}) - F_X(x_i) + F_{X'}(x_i) -F_{X'}(\hat x_{i+1})|$. So $d_K(X,X') \geq 1/2| F_X(\hat x_{i+1}) - F_X(x_i) | =P(x_1 < X < x_2)/2 = w(x_i,x_{i+1})$. 
-	
-% Since $d_K(X,X') {\geq}  w(x_i,x_{i+1})$ for any $0{\leq} i{\leq} m$, the proof follows by the definition of $\varepsilon(X,S)$.
-% \end{proof}
-
-
-
-% We next describe a random variable $X'\in\mathbb{X}_S$ in a distance of $\varepsilon(X,S)$ from $X$ by its probability mass function:
-
-% \begin{definition}\label{def:construction}
-% 	Let $f_{X'}(x_{i}) = w(x_{i-1},x_i) + w(x_i,x_{i+1}) + f_{X}(x_i)$ for $i=1,\dots,m$ and $f_{X'}(x)=0$ for $x \notin S$.
-% \end{definition}
-
-% We first show that $X'$ is a properly defined random variable:
-
-% \begin{lemma}
-% 	$f_{X'}$ is a probability mass function. 
-% \end{lemma}
-
-% \begin{proof}
-% 	By definition $f_{X'}(x_{i})\geq 0$ for every $i$. To see that $\sum_i f_{X'}(x_{i}) =1$, 
-% 	we have $\sum_i f_{X'}(x_{i}) = \sum_i (w(x_{i-1},x_i) + w(x_i,x_{i+1}) + f_{X}(x_i)) = 	
-% 	\sum _{x_i\in S} f_{X}(x_i)) + w(x_0,x_1)+ \sum_{0 < i < m} 2 w(x_i,x_{i+1}) + w(x_m,x_{m+1}) = 
-% 	\sum _{x_i\in S} P(X{=}x_i) + P(x_0 {<} X {<} x_1)+ \sum_{0 < i < m} P(x_i < X < x_{i+1}) +P(x_m < X < x_{m+1}) = 1$ since this is the entire support of $X$.	
-% \end{proof}
-
-
-% Note that, given $S$, $X'$ can be constructed in time linear in the size of the support of $X$.
-% Its main property, of course, is that the distance between the cumulative distribution functions of $X$ and of $X'$ are bounded by $w(x_i,x_{i+1})$, as follows:
-% \begin{lemma}\label{lem:balance}
-% 	Let $x\in\support(X)$ and $0\leq i\leq m$ be such that $x_i\leq x \leq x_{i+1}$ then 
-%     \[
-%     -w(x_i,x_{i+1})\leq F_X(x)-F_{X'}(x)\leq  w(x_i,x_{i+1}).
-%     \]
-%     \end{lemma}
-
-% \begin{proof}	
-% 	By induction on $i$.	First see that $F_{X'}(x) = 0$  for every $x_0<x < x_1$ and therefore $F_X(x)-F_{X'}(x) = F_X(x)-0 \leq F_X(\hat x_1)= F_X(\hat x_1)- F_X(x_0) = w(x_0,x_1)$. For $ x = x_1$ we have $F_X(x_1)-F_{X'}(x_1)=  F_X(\hat x_1) +f_{X}(x_1) - (w(x_0,x_1) + w(x_1,x_2) + f_{X}(x_1) = 
-% 	w(x_0,x_1) +f_{X}(x_1) - (w(x_0,x_1) + w(x_1,x_2) + f_{X}(x_1)) = -w(x_1,x_2)$.
-	
-% 	Next assume that $F_X(\hat x_i)-F_{X'}(\hat x_i) = w(x_{i-1},x_i)$.
-% 	Then $F_X(x_i)-F_{X'}(x_i) =  F_X(\hat x_i) +f_{X}(x_i) - (w(x_{i-1},x_i) + w(x_i,x_{i+1}) + f_{X}(x_i)) =  w(x_{i-1},x_i) +f_{X}(x_{i}) - (w(x_{i-1},x_i) + w(x_{i},x_{i+1}) + f_{X}(x_{i})) = -w(x_{i},x_{i+1})$.
-	
-% 	As before we have that for all $x_i< x< x_{i+1}$, we have $F_X(x)-F_{X'}(x) = F_X(x)-F_{X'}(\hat x_{i+1}) \leq  F_X(\hat x_{i+1})-F_{X'}(\hat x_{i+1})$. Then $F_X(\hat x_{i+1})-F_{X'}(\hat x_{i+1}) = (F_X(x_i)+ P(x_i < x <x_{i+1})) - F_{X'}(x_i) = -w(x_{i},x_{i+1}) + 2w(x_{i},x_{i+1}) = w(x_{i},x_{i+1}) $.
-	
-	
-% 	Finally, for $x_m\leq x \leq x_{m+1}$ we have that $F_{X'}(x_m)=1$ therefore $F_X(x_m)-F_{X'}(x_m) = (1- P(x_m<X < x_{m+1})) - 1 =  P(x_m<X < x_{m+1}) = w(x_m,x_{m+1})$, and for every $x_m<x<x_{m+1}$ we have $F_X(x) - F_{X'}(x) < (1- P(x_m<X < x_{m+1})) - 1 <  - P(x_m<X < x_{m+1}))  = -w(x_m,x_{m+1})$ as required.
-% \end{proof}
-
-% From Lemma \ref{lem:balance}, by the definition of $\varepsilon(X,S)$, we then have:
-% \begin{corollary} \label{col:Xprime}
-% 	$d_K(X,X') = \varepsilon(X,S)$.
-% \end{corollary}
-% From Proposition~\ref{prop:minimal} we also have:
-% \begin{corollary} \label{col:Xprimeopt}
-% 	$\varepsilon(X,S)$ is the Kolmogorov distance between $X$ and the variables closest to it in $\mathbb{X}_S$.
-% \end{corollary}
-
-
-
-% \subsection*{Step 2: Finding a set $S$ that minimizes $\varepsilon(X,S)$}
-
-% We proceed to finding a set $S$ of size $m$ that minimizes $\varepsilon(X,S)$. To obtain that we use a graph search approach inspired by~\cite{chakravarty1982partitioning}. We construct a directed graph with a source and a target in which each source-to-target path of length smaller or equal to $m$ corresponds to a possible support set of the same size, and the weights along that path correspond to the weight as defined in Definition~\ref{def:weight}. Thus the problem of finding an $S$ of size $m$ that minimizes $\varepsilon(X,S)$ is reduced to the problem of finding a source-to-target path $\vec{p}$ of length smaller or equal to $m$ in that graph such that the maximal weight of an edge in $\vec{p}$ is minimal among all other such maximal edges in all other such paths. 
-
-
-% More specifically, the vertices of the graph are $V=\support(X) \cup \{-\infty,\infty\}$ and the edges, $E$, are all the pairs $(x_1,x_2) \in V^2$ such that $x_1 < x_2$. The weight 
-% of each edge is as specified in Definition~\ref{def:weight}. Note that there is a one-to-one correspondence between a set $S \subseteq \support(X)$ of size $m$, and an $-\infty$-to-$\infty$ path $\vec{p}_S$ in $G$, obtained by removing the $-\infty$ and $\infty$ from the path in one direction and by adding these elements and sorting in the other direction. 
-% With this correspondence, the maximal weight of an edge on $\vec{p}_S$ is $\varepsilon(X,S)$. We denote this maximal weight of an edge  by $w(\vec{p}_S)$, and denote the set of all acyclic $-\infty$-to-$\infty$ paths in $G$ with at most $m$ edges by $paths_m(G, -\infty, \infty)$. Thus, the problem of finding the set $S$ with the minimal  $\varepsilon(X,S)$ is now reduced to the problem of finding a path $\vec{p}\in paths_m(G, -\infty, \infty)$ such that $w(\vec{p})$ is minimal among all $\{w(\vec{p'}) \colon \vec{p'}\in paths_m(G, -\infty, \infty)\}$. 
-% This problem can be solved by a variant of the Bellman-Ford algorithm and by the algorithm described in~\cite{guerin2002computing} that performs better in some cases.
-
-
-% %\begin{corollary}\label{cor:Bellman}
-% %$BellmanFord(G,m)$ returns a path $\vec{p}\in paths_m(G, s, t)$ such that $w(\vec{p})$ is minimal among all $\{w(\vec{p'}) | \vec{p'}\in paths_m(G, s, t)\}$.
-% %\end{corollary}
-
-
-% \subsection*{Step 3: Constructing the overall algorithm}
-
-% We combine Step 1 and Step 2 in the following algorithm called $\KlmApprox$ (Algorithm~\ref{alg:optapprox}) that follows naturally from the two steps. Given $X$ and $\support(X)$ we add $x_0=\infty,x_{n+1}=-\infty$ and construct the graph (line 2) as described  in Step 2 above. Then we execute a variant of the Bellman-Ford algorithm on $G$ for $m$ iterations, or the algorithm proposed in~\cite{guerin2002computing}, to obtain a path $\vec{p}$ (line 2). Finally, we use Definition~\ref{def:construction} to construct $X'$ from $\vec{p}$ (line 3).
-
-
-% \begin{algorithm}\label{alg:optapprox}
-% 	%\setstretch{1.5}
-% 	\DontPrintSemicolon
-% 	Construct a weighted graph $G=(V,E)$ where $V=\support(X) \cup \{-\infty,\infty\}$, $E=\{(x_1,x_2) \in V^2\colon x_1 < x_2 \}$, and the weights are as in Definition~\ref{def:weight}.\; \vspace{0.2cm}
-
-% 	Find a path $\vec{p}=(x_0,\dots,x_{m+1})\in paths_m(G, -\infty, \infty)\}$ such that $w(\vec{p}) = \min \{w(\vec{p}) \colon \vec{p}\in paths_m(G, -\infty, \infty)\}$.   \; 	\vspace{0.2cm}
-
-
-% 	Return a random variable whose probability mass function is 
-% 		$f_{X'}(x_{i}) = w(x_{i-1},x_i) + w(x_i,x_{i+1}) + f_{X}(x_i)$ for all $i=1,\dots,m$ and zero otherwise. \;
-	
-% 	\caption{$\KlmApprox (X, m)$}  
-% 	\label{alg:sequence}
-% \end{algorithm}
-
-
-
-
-
-
-% \begin{theorem}\label{the:algo}
-% 	$\KlmApprox$ returns an $m$-optimal-approximation of $X$.
-% \end{theorem}
-% \begin{proof}
-% By the construction of $G$ we get that the path $\vec{p}$ obtained in line 2 of  $\KlmApprox$ describes a set $S$ of support of size at most $m$ for which $\varepsilon(S,X)$ is minimal. Then from Definition \ref{def:construction} and Corollary \ref{col:Xprime} we construct $X'$ in lines 3 of 	$\KlmApprox$ such that $d_K(X,X') = \varepsilon(X,S)$. Therefore $X'$ is closets to $X$ among all random variables with support contained in $\support(X)$. From Lemma \ref{lem:supContained} we then get that $X'$ is an $m$-optimal-approximation of $X$.
-% \end{proof}
-
-
-
-% The memory and time  complexities of $\KlmApprox$ are as follows.
-
-
-% \begin{theorem}\label{the:complexity}
-% 	The $\KlmApprox(X,m)$ algorithm runs in time $O(n^2m)$, using $O(n^2)$ memory where $n=|X|$.
-% \end{theorem}
-% \begin{proof}
-% 	Constructing the graph $G$ as described in Step 2 takes $O(n^2)$ time and memory. Computing the shortest path can be achieved, for example, by the algorithm described in~\cite{guerin2002computing} in time $O(n^2 m)$ and no additional memory allocation.
-% \end{proof}
-% %\begin{proof}
-% %	Constructing the graph $G$ as described in Step 2 takes $O(n^2)$ time and memory. The number of edges in $G$ is $O(|E|)=O(n^2)$, for every edge the weight is at most the sum of all
-% %probabilities between the source node $s$ and the target node $t$, which can be calculated efficiently by aggregating the weights of already calculated edges. 
-% %	The construction is also the only stage that requires memory allocation, specifically $O(|E|+|V|)=O(n^2)$.
-% %	Next using the Bellman-Ford algorithm on $G$ for $m$ iterations   takes $O(m(|E|+|V|))\approx O(mn^2)$. [[DF: cite Corman or some algorithms book]]. 
-% %	Finally deriving the new random variable $X'$ from the computed path $\vec{p}$ takes $O(m)$ time: For every node $x_i$ in $\vec{p}$ (at most $m$ nodes), use the already calculated weights to find the probability mass function $f_{X'}(x_i)$. 
-% %	To conclude, the time complexity  of $\KlmApprox(X,m)$ is $O(n^2+mn^2+m)=O(mn^2)$ and memory complexity is $O(E+V)=O(n^2)$.
-% %\end{proof}
-
-
-
-
+\begin{theorem}\label{the:correctnessLinear}
+	   
+    $linApprox(X,m) {\in} \underset{X' \in \bar{\mathcal{B}}(X,m) }{\operatorname{arg\,min}}\, d_K(X,X')$ where $\bar{\mathcal{B}}(X,m)=\{X'\colon |X'| \leq m\}$.
+\end{theorem}
+\begin{proof}
+In line~10 we only discard sub-matrices whose minimal entry (at the top left) is larger than an entry that we prefer. In line~12 we only discard sub-matrices whose maximal entry (at the bottom right) is smaller or equal to an entry that does not meet our condition.
+\end{proof}
+
+\begin{theorem}\label{the:complexityLinear}
+	The $linApprox(X,m)$ algorithm runs in time $O(n \log(n))$, using $O(1)$ memory where $n=|X|$.
+\end{theorem}
+\begin{proof}
+The dimension of each matrix is halved in each round, thus the loop is executed $O(\log(n))$ rounds. Since $dual$ is called one in each round and a finite number of times at the end, the time complexity is $O(n \log(n))$.
+\end{proof}
 
 
 \section{Experimental evaluation}\label{sec:exp}
@@ -555,9 +377,9 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 We describe below several experiments that show how $\KlmApprox$ performs in practice in different applications and domains.
 All algorithms were implemented in Python and the experiments were executed on a hardware comprised of an Intel i5-6500 CPU @ 3.20GHz processor and 8GB memory. The algorithms of Cohen et al. were taken ``as is" from in the supplementary material to~\cite{cohen2015estimating}.
 
-\paragraph{Repetitive support size minimization.} One use of support size minimization is when commutations that involve summations of random variables slow due to an exponential growth in the support of convolutions of random variables~\cite{cohen2015estimating}. A key action in coping with this situation is reduction of the  support size by replacing the summed random variable by an approximation of it that has a smaller support size. Previous work such as the work of Cohen et al. in ~\cite{cohen2015estimating,CohenGW18} handle this reduction using weaker or sub-optimal notion of approximation than ours, as discussed in Section~\ref{sec:relwork}. 
+\paragraph{Repetitive support size minimization.} One use of support size minimization is when commutations that involve summations of random variables slow due to an exponential growth in the support of convolutions of random variables~\cite{cohen2015estimating}. A key action in coping with this situation is reduction of the  support size by replacing the summed random variable by an approximation of it that has a smaller support size. Previous work such as the work of Cohen et al. in ~\shortcite{cohen2015estimating,CohenGW18} handle this reduction using weaker or sub-optimal notion of approximation than ours, as discussed in Section~\ref{sec:relwork}. 
 
-As proven in Section~\ref{sec:algEfficient}, given $m$, a single step of $\KlmApprox$ guarantees an optimal $m$-approximation. However in the setting considered here we need to repetitively use $\KlmApprox$, thus the optimality of the eventually obtained random variable is not guaranteed. In light of this, we tested the accuracy of the repetitive-$\KlmApprox$ to see how it performs against the tools of~\cite{cohen2015estimating,CohenGW18} using their benchmarks. These benchmarks are taken from the area of task trees with deadlines, a sub area of the well-established Hierarchical planning~\cite{thomas1988hierarchical,alford2016hierarchical,xiao2017hierarchical}.
+As proven in Section~\ref{sec:algEfficient}, given $m$, a single step of $\KlmApprox$ guarantees an optimal $m$-approximation. However in the setting considered here we need to repetitively use $\KlmApprox$, thus the optimality of the eventually obtained random variable is not guaranteed. In light of this, we tested the accuracy of the repetitive-$\KlmApprox$ to see how it performs against the tools of~\cite{cohen2015estimating,CohenGW18} using their benchmarks. These benchmarks are taken from the area of task trees with deadlines, a sub area of the well-established hierarchical planning~\cite{thomas1988hierarchical,alford2016hierarchical,xiao2017hierarchical}.
 
 %The case study examined in our experiments is the problem of task trees with deadlines~\cite{cohen2015estimating,CohenGW18}. Hierarchical planning is a well-established field in AI~\cite{thomas1988hierarchical,erol1994htn,erol1996complexity}, and is still relevant nowadays~\cite{alford2016hierarchical,xiao2017hierarchical}. A hierarchical plan is a method for representing problems of automated planning in which the dependency among tasks can be given in the form of networks, here we focus on hierarchical plans represented by task trees. The leaves in a task tree are \emph{primitive} actions (or tasks), and the internal nodes are either \emph{sequence} or \emph{parallel} actions. The plans we deal with are of stochastic nature, and the task duration is described as probability distributions in the leaf nodes. We assume that the distributions are independent but {\em not} necessarily identically distributed and that the random variables are discrete and have a finite support. 
 
@@ -568,13 +390,13 @@ As proven in Section~\ref{sec:algEfficient}, given $m$, a single step of $\KlmAp
 %The second type consists of task trees used as execution plans for the ROBIL team entry in the DARPA robotics challenge (DRC simulation phase), and the third type is of linear plans (sequential task trees).
 %The primitive tasks in all the trees are modeled as discrete random variables with support of size $M$ obtained by discretization of uniform distributions over various intervals. The number of tasks in a tree is denoted by $N$. 
 
-We estimated the probability for meeting deadlines in plans, as described in~~\cite{cohen2015estimating,CohenGW18}, and experimented with four different methods of approximation. The first two, $\OptTrim$~\cite{CohenGW18} and the $\Trim$~\cite{cohen2015estimating}, are taken from the repository provided by the authors and are designed for achieving only a one-sided Kolmogorov approximation - a  weaker notion of approximation then the Kolmogorov approximation analyzed in this work. The third method is a simple sampling scheme and the fourth is our Kolmogorov approximation obtained by the proposed $\KlmApprox$ algorithm. The parameters for the different methods were chosen in a compatible way, $M$ is the maximal support size, $N$ is the number of nodes of the plan network and $s$ is the number of samples. We ran also an exact computation as a reference to the approximated one in order to calculate the errors. 
+We estimated the probability for meeting deadlines in plans, as described in Cohen et al.~\shortcite{cohen2015estimating,CohenGW18}, and experimented with four different methods of approximation. The first two, $\OptTrim$~\cite{CohenGW18} and the $\Trim$~\cite{cohen2015estimating}, are taken from the repository provided by the authors and are designed for achieving only a one-sided Kolmogorov approximation - a  weaker notion of approximation then the Kolmogorov approximation analyzed in this work. The third method is a simple sampling scheme and the fourth is our Kolmogorov approximation obtained by the proposed $\KlmApprox$ algorithm. The parameters for the different methods were chosen in a compatible way, $M$ is the maximal support size, $N$ is the number of nodes of the plan network and $s$ is the number of samples. We ran also an exact computation as a reference to the approximated one in order to calculate the errors. 
 
 \begin{table}[th]
 	\scriptsize
 	\centering
 	\renewcommand{\arraystretch}{1.3}
-	\begin{tabular}{|p{1.05cm}|p{0.25cm}|p{0.93cm}|p{0.93cm}|p{1.05cm}|p{0.75cm}|p{0.75cm}|}
+	\begin{tabular}{|p{1.05cm}|p{0.2cm}|p{0.98cm}|p{0.93cm}|p{1.05cm}|p{0.75cm}|p{0.75cm}|}
 		\hline
 		\multirow{2}{*}{Task Tree} & \multirow{2}{*}{$M$} & {$\KlmApprox$} & {$\OptTrim$} & {$\Trim$} & \multicolumn{2}{c|}{Sampling} \\ \cline{3-7} 
 		&	& $m/N{=}10$ & $m/N{=}10$ & $\varepsilon\cdot N{=}0.1$ & $s{=}10^{4}$& $s{=}10^{6}$ \\ \hline
@@ -610,13 +432,11 @@ We estimated the probability for meeting deadlines in plans, as described in~~\c
 Table~\ref{tab:errors} shows the results of the experiment. The quality of the solutions obtained with the $\KlmApprox$ operator are better than those obtained by the $\Trim$ and $\OptTrim$ operators as expected. In some of the task trees, the sampling method produced better results than the approximation algorithm with $\KlmApprox$. Still, the $\KlmApprox$ approximation algorithm comes with an inherent advantage of providing an exact quality guarantees, as opposed to sampling where the best one can hope for is probabilistic guarantees.
 
 \paragraph{Run time comparison.}
-Similarly to accuracy and error computation, we also conducted empirical evaluation to examine the run-time in practice of the discussed algorithms. Figure~\ref{fig:runtime} presents a comparison of the run-time performances of an exact computation and approximated computations with $\KlmApprox$ and $\Trim$ as operators. We examined three versions of $\KlmApprox$ each of which with different run-time,  The computation is a summation of a sequence of random variables with support size of $m{=}10$, where the number $n$ of variables varies from 6 to 19. In this experiment, we executed the $\KlmApprox$ operator with $m{=}10$ after performing each convolution between two random variables, in order to maintain a support size of 10 in all intermediate computations. 
-Equivalently, we executed the $\Trim$ operator with $\varepsilon=0.1$.
-The results clearly show the exponential run-time of the exact computation, caused by the convolution between two consecutive random variables. In fact, in the experiment with $N{=}20$, the exact computation ran out of memory. These results illuminate the advantage of the proposed $\KlmApprox$ algorithm that balances between solution quality and run-time performance -- while there exist other, faster, methods (e.g., $\Trim$), $\KlmApprox$ provides high-quality solutions in reasonable (polynomial) time, which is especially important when an exact computation is not feasible, due to time or memory.
+Similarly to accuracy and error computation, we also conducted empirical evaluation to examine the run-time in practice of the discussed algorithms. Figure~\ref{fig:runtime} presents a comparison of the run-time performances of an exact computation and approximated computations with $\KlmApprox$, $\BinsApprox$, $\OptTrim$ and $\Trim$ as operators. We examined four versions of approximation each of which with different run-time but only $\KlmApprox$ and $\BinsApprox$ produce optimal Kolmogorov approximation. The computation is a summation of a sequence of random variables with support size of $m{=}10$, where the number $n$ of variables varies from 6 to 19. In this experiment, we executed the approximation algorithm with $m{=}10$ after performing each convolution between two random variables, in order to maintain a support size of 10 in all intermediate computations. Equivalently, we executed the $\Trim$ operator with $\varepsilon=0.1$.
+The results clearly show the exponential run-time of the exact computation, caused by the convolution between two consecutive random variables. In fact, in the experiment with $N{=}20$, the exact computation ran out of memory. These results illuminate the advantage of the proposed $\KlmApprox$ algorithm that balances between solution quality and run-time performance -- while there exist other, faster, methods (e.g., $\Trim$), $\KlmApprox$ provides high-quality solutions in $O(n log(n))$ time, which is especially important when an exact computation is not feasible, due to time or memory. In general, Figure~\ref{fig:runtime} is consistent with the theory and show a good fit to the complexity analysis presented in Section~\ref{sec:algEfficient}.  
 
 
 \begin{figure}[htb]
-    \label{fig:runtime}
 	\scriptsize	
 	\centering 
 	\begin{tikzpicture}
@@ -697,7 +517,7 @@ The results clearly show the exponential run-time of the exact computation, caus
 		(18, 0.3011953830718994) 
 		(19, 0.3091733455657959) 
 	};
-	\addlegendentry{$n^2log(n) \KlmApprox$}
+	\addlegendentry{$n^2log(n) \BinsApprox$}
 	
 	\addplot[
 	color=orange,
@@ -745,7 +565,7 @@ The results clearly show the exponential run-time of the exact computation, caus
 	\addlegendentry{$\Trim$}
 	\end{axis}
 	\end{tikzpicture}
-	\caption{Run-time of a long computation with $\OptTrim$, with $\Trim$, and without any trimming (exact computation).}
+	\caption{Run-time of a long computation with $\KlmApprox$, $\BinsApprox$, $\OptTrim$, $\Trim$, and without any trimming (exact computation).}
 	\label{fig:runtime}
 \end{figure}
 \paragraph{Single step support minimisation.}
@@ -819,17 +639,17 @@ Figure~\ref{fig:error} presents the error produced by the above methods. The dep
 	\label{fig:error}
 \end{figure}
 
-% \paragraph{Comparison to Linear Programming.}
-% We also compared the run-time of $\KlmApprox$ with a linear programing (LP) algorithm that also guarantees optimality, as described and discussed for example in~\cite{pavlikov2016cvar}.
-% For that, we used the ``Minimize'' function of Wolfram Mathematica as a  state-of-the-art implementation of linear programing, encoding the problem by the LP problem $\min_{\alpha \in \mathbb{R}^n} \| x - \alpha\|_\infty$ subject to $\|\alpha\|_0 \leq m$ and $\| \alpha \|_1 =1$.
-% The run-time comparison results were clear and persuasive: $\KlmApprox$ significantly outperforms the LP algorithm. For a random variable with support size $n=10$ and $m=5$, the LP algorithm run-time was $850$ seconds, where the $\KlmApprox$ algorithm run-time was less than a tenth of a second. For $n=100$ and $m=5$, the $\KlmApprox$ algorithm run-time was 0.14 seconds and the LP algorithm took more than a day. 
-% Since it is not trivial to formally analyze the run-time of the LP algorithm, we conclude by the reported experiment that in this case the LP algorithm might not be as efficient as $\KlmApprox$ algorithm whose complexity is proven to be polynomial in Theorem~\ref{the:complexity}.
+\paragraph{Comparison to Linear Programming.}
+We also compared the run-time of $\KlmApprox$ with a linear programming (LP) algorithm that also guarantees optimality, as described and discussed for example in~\cite{pavlikov2016cvar}.
+For that, we used the ``Minimize'' function of Wolfram Mathematica as a  state-of-the-art implementation of linear programming, encoding the problem by the LP problem $\min_{\alpha \in \mathbb{R}^n} \| x - \alpha\|_\infty$ subject to $\|\alpha\|_0 \leq m$ and $\| \alpha \|_1 =1$.
+The run-time comparison results were clear and persuasive: $\KlmApprox$ significantly outperforms the LP algorithm. For a random variable with support size $n=10$ and $m=5$, the LP algorithm run-time was $850$ seconds, where the $\KlmApprox$ algorithm run-time was less than a tenth of a second. For $n=100$ and $m=5$, the $\KlmApprox$ algorithm run-time was 0.14 seconds and the LP algorithm took more than a day. 
+Since it is not trivial to formally analyze the run-time of the LP algorithm, we conclude by the reported experiment that in this case the LP algorithm might not be as efficient as $\KlmApprox$ algorithm.
 
 \section{Discussion and future work}\label{sec:discussion}
 %Compact representations of distributions is mentioned in the literature in various contexts for various applications. In this paper, we are interested in finding optimal approximation of a random variables under the Kolmogorov metric which we define as optimal $m$-approximation. In order to achieve this optimal approximation two steps were taken, find the support of the optimal random variable and then calculate the pmf of each and every value in that support to minimize the error. Proofs of existences, optimality and run-time were detailed in Section~\ref{sec:alg} and the main algorithm was presented, the $\KlmApprox$ algorithm. Establishing the main contribution of this paper which is to present an optimal approximation scheme and to show it can be achieved in polynomial run-time. Furthermore, empirical evaluation was conducted on different domains and application to examine the algorithm performance in practice. We were interested in two aspects of performance - accuracy and run-time. Regarding to accuracy, as expected, the suggested $\KlmApprox$ algorithm results much smaller error compared to the other methods, sometimes, in more then factor 0f 2. Regarding to run-time, $\KlmApprox$ algorithm run-time is significantly much faster then LP approach. However, compared to other approximation methods accuracy vs. run-time is a trade off yet to be examined. Another interesting experiment that can be conducted in future work is to add the presented approach as one of the methods examined in~\cite{zeng2017comparison} and compare it to the binning approaches.
 
-We developed an algorithm for computing optimal approximations of random variables where the approximation quality is measured by the Kolmogorov distance.
-As demonstrated in the experiments, our algorithm improves on the approach of Cohen et al.~\cite{cohen2015estimating} and~\cite{CohenGW18} in that it finds an optimal two sided Kolmogorov approximation, and not just one sided. Beyond the Kolmogorov measure studied here we believe that similar approaches may apply also to total variation, to the Wasserstein distance, and to other measures of approximations. Another direction for future work is extensions to tables that represent other objects, not necessarily random variables. To this end, we need to extend the algorithm to support tables that do not always sum to one and tables that may contain negative entries.
+We developed an efficient algorithm for computing optimal approximations of random variables where the approximation quality is measured by the Kolmogorov distance.
+As demonstrated in the experiments, our algorithm improves on the approach of Cohen et al.~\shortcite{cohen2015estimating} and~\shortcite{CohenGW18} in that it finds an optimal two sided Kolmogorov approximation, and not just one sided. Beyond the Kolmogorov measure studied here, we believe that similar approaches may apply also to total variation, to the Wasserstein distance, and to other measures of approximations. Another direction for future work is extensions to tables that represent other objects, not necessarily random variables. To this end, we need to extend the algorithm to support tables that do not always sum to one and tables that may contain negative entries.
 
 \bibliographystyle{aaai}
 \bibliography{library,Trim_Optimum}
