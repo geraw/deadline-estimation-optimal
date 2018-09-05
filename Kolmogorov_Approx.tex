@@ -324,8 +324,8 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 	
 	Let 
 	$$e_{i,j} = \begin{cases}
-	c_j   & \text{if } i > \lfloor n/2 \rfloor; \\
-	1-c_i & \text{if } j \geq \lceil n/2 \rceil; \\
+	c_j   & \text{if } i > n; \\
+	1-c_i & \text{if } j \geq n; \\
 	(c_{n+1-j} {-} c_i)/2  & \text{otherwise}.
 	\end{cases}$$
 
