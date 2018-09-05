@@ -86,11 +86,11 @@ A sequence node denotes a series of tasks that should be performed consecutively
 
 We measure the quality of an approximation scheme by the distance between random variables and their approximations. Specifically, we use the Kolmogorov distance which is  commonly used for comparing random variables in statistical practice and literature. Given two random variables $X$ and $X'$ whose cumulative distribution functions (cdf) are $F_X$ and $F_{X'}$, respectively, the Kolmogorov distance between $X$ and $X'$ is $d_K(X,X')= \sup_t |F_X(t) - F_{X'}(t)|$ (see, e.g.,~\cite{gibbons2011nonparametric}). We say that $X'$ is a good approximation of $X$ if $d_K(X,X')$ is small. This distance is the basis for the often used Kolmogorov-Smirnoff test for comparing a sample to a distribution or two samples to each other. 
 
-The size of a random variable is measured here by the size of its support, the set of possible outcomes, $|X|=|\support(X)|=|\{x\colon Pr(X=x) \neq 0\}|$. When probability mass functions are maintained as explicit tables, as done in many implementations of statistical software, the size of the support of the variable is proportional to the amount of memory needed to store it and to the complexity of the computations that manipulate it. 
+The size of a random variable is measured here by the size of its support, the set of possible outcomes, $|X|=|X|=|\{x\colon Pr(X=x) \neq 0\}|$. When probability mass functions are maintained as explicit tables, as done in many implementations of statistical software, the size of the support of the variable is proportional to the amount of memory needed to store it and to the complexity of the computations that manipulate it. 
 
 Together, the exact notion of optimality of the approximation targeted in this paper is:
 \begin{definition}
-	A random variable $X'$ is an optimal $m$-approximation of a random variable $X$ if $|\support(X')| \leq m$ and there is no random variable $X''$ such that $|\support(X'')| \leq m$ and $d_K(X,X'') < d_K(X,X')$.
+	A random variable $X'$ is an optimal $m$-approximation of a random variable $X$ if $|X'| \leq m$ and there is no random variable $X''$ such that $|X''| \leq m$ and $d_K(X,X'') < d_K(X,X')$.
 \end{definition}
 
 In these terms, the main contribution of the paper is an efficient (polynomial time and memory) algorithm that takes $X$ and $m$ as parameters and constructs an optimal $m$-approximation of $X$.
@@ -139,7 +139,7 @@ We begin our dissection by presenting a useful fact that it is enough to limit o
 	Since $|F_{X}(x)-F_{X'}(x)| = |F_{X}(x_i)-F_{X'}(x_i)|$ for every  $0\leq   i  \leq  n$  and $x_i<x<x_{i+1}$, we have that $d_K(X,X')=max_{i}|F_{X}(x_i)-F_{X'}(x_i)|\leq max_{i}|F_{X}(x_i)-F_{X''}(x_i)|\leq d_K(X,X'')$.
 \end{proof} 
 
-Both of the algorithms presented in this section are using the dual problem in order to find the optimal $m$-approximation of $X$. The dual problem is: given a random variable $X$ with $|\support(X)| = n$, and some $0 \leq \varepsilon \leq 1$, find a new random variable $X'$ such that $|\support(X')|\leq m$ where $0< m \leq n$ and $d_K(X,X')$ is minimal. 
+Both of the algorithms presented in this section are using the dual problem in order to find the optimal $m$-approximation of $X$. The dual problem is: given a random variable $X$ with $|X| = n$, and some $0 \leq \varepsilon \leq 1$, find a new random variable $X'$ such that $|X'|\leq m$ where $0< m \leq n$ and $d_K(X,X')$ is minimal. 
 
 We do not assume anything about the representation of the random variable $X$ given as an input to the $dual(X,\varepsilon)$ algorithm. However, we transform the representation of every given $X$, to the form of sorted CDF as described in line 1 in the algorithm, which takes $O(nlog(n))$ run-time and has to done only once. The $dual(X,\varepsilon)$ gets as input a random variable $X$ and some $\varepsilon$, the random variable $X$ is represented as in line 1, $X_{CDF} =\{(x_i, c_i)\}_{i=1}^n$ such that $c_i = Pr(X \leq x_i)$ and $\supp(X)=\{x_1 <\cdots < x_n\}$. In lines 3-4 we perform a single pass over $X_{CDF}$ starting from index 1 to find the last index where the cumulative distribution function of $X$ is less than $\varepsilon$, this index is now $f$. In lines 5-6 in the algorithm we start from the last index of $X_{CDF}$ which is $n$, and in decreasing order seek for the last index where the cumulative distribution function of $X$ is less than $1-\varepsilon$, this index is now $l$. The last part of the algorithm is a pass on all elements in $X_{CDF}$ between the indices $f$ and $l$ in order to construct the $m$-approximation random variable of $X$, $X'$. In lines 9-10 we check if the difference between the first element in the current set of indices (which we call $b$) and the last element in the current set of indices (which we call $e+1$) is less that $2\varepsilon$. If yes, we add the pair $\{(x_{b}, (c_b+c_e)/2 - s) \}$ to the set $S$. Otherwise, we add one to the counter of $e$. Note, the reason we need $s$ is to return the random variable $X'$ in a PDF representation since our main motivation is sum of random variables, this part takes $O(n)$ run-time.
 
@@ -173,13 +173,13 @@ We do not assume anything about the representation of the random variable $X$ gi
 %which c? why -s? name without any meaning, cant understand
 
 \begin{theorem}\label{the:complexityDual}
-	The $dual(X,\varepsilon)$ algorithm runs in time $O(n)$, using $O(n)$ memory where $n=|\support(X)|$.
+	The $dual(X,\varepsilon)$ algorithm runs in time $O(n)$, using $O(n)$ memory where $n=|X|$.
 \end{theorem}
 \begin{proof}
 	This algorithm describes a single pass over the random variable $X$. Lines 3-4 and lines 5-6 are easy to follow, each takes $O(n)$ in the worst case. Lines 8-12 also describe one pass over $X$ since the counter $e$ is updated to $e+1$ at most $n$ times. All together we get run-time complexity of $O(3n)$ = $O(n)$. We are constructing the set $S$ which is of size $n$ in the worst case, therefore, memory complexity is also $O(n)$. 
 \end{proof}
 
-The first technique we present is the $binsearchApprox(X,m)$ algorithm which is based on the work done by D{\'i}az-B{\'a}nez and Mesa~\cite{diaz2001fitting}. There are couple of significant changes between our $binsearchApprox(X,m)$ algorithm and the algorithm suggested by D{\'i}az-B{\'a}nez and Mesa~\cite{diaz2001fitting} addressing the differences presented in the Related Work section~\ref{sec:relwork}. The algorithm $binsearchApprox(X,m)$ gets as input a random variable $X$ and some number $m$. Again, we do not mind the original representation of $X$ since we can transform it to a sorted CDF representation in $O(nlog(n))$ run-time as in line 1 which we call $X_{CDF}$. In lines 3-8 we compute all possible errors, in other words, all possible $d_{K}(X,X')$ such that $X'$ is an approximation of $X$ and $\support(X') \subseteq \support(X)$. The error is just the difference between the CDF values of every two elements in $X_{CDF}$. After computing the set $E$, we sort it (line 9) in order to perform a binary search in the last part of the algorithm. In lines 10-19 we perform a binary search over the set $E$, in every step of the binary search we run the $X' = dual(X,\varepsilon)$ algorithm. If the size of $|\support(X')|>m$ then we know that the error $\varepsilon$ is too small and need to extend the search in the right side of $E$, if the size of $|\support(X')|<m$ then we know that the error $\varepsilon$ is too big and need to extend the search in the left side of $E$, otherwise we found the correct $m$. We run the search twice to handle the extreme case where $m \notin \{\forall \varepsilon\in E: |dual(X,\varepsilon)|\}$ and return the smallest $m'$ closest to $m$.
+The first technique we present is the $binsearchApprox(X,m)$ algorithm which is based on the work done by D{\'i}az-B{\'a}nez and Mesa~\cite{diaz2001fitting}. There are couple of significant changes between our $binsearchApprox(X,m)$ algorithm and the algorithm suggested by D{\'i}az-B{\'a}nez and Mesa~\cite{diaz2001fitting} addressing the differences presented in the Related Work section~\ref{sec:relwork}. The algorithm $binsearchApprox(X,m)$ gets as input a random variable $X$ and some number $m$. Again, we do not mind the original representation of $X$ since we can transform it to a sorted CDF representation in $O(nlog(n))$ run-time as in line 1 which we call $X_{CDF}$. In lines 3-8 we compute all possible errors, in other words, all possible $d_{K}(X,X')$ such that $X'$ is an approximation of $X$ and $\support(X') \subseteq \support(X)$. The error is just the difference between the CDF values of every two elements in $X_{CDF}$. After computing the set $E$, we sort it (line 9) in order to perform a binary search in the last part of the algorithm. In lines 10-19 we perform a binary search over the set $E$, in every step of the binary search we run the $X' = dual(X,\varepsilon)$ algorithm. If the size of $|X'|>m$ then we know that the error $\varepsilon$ is too small and need to extend the search in the right side of $E$, if the size of $|X'|<m$ then we know that the error $\varepsilon$ is too big and need to extend the search in the left side of $E$, otherwise we found the correct $m$. We run the search twice to handle the extreme case where $m \notin \{\forall \varepsilon\in E: |dual(X,\varepsilon)|\}$ and return the smallest $m'$ closest to $m$.
  
 
 \begin{algorithm}
@@ -201,7 +201,7 @@ The first technique we present is the $binsearchApprox(X,m)$ algorithm which is 
         $l\gets 1$, $r \gets n'$, $k \gets 1$ \;
         \Do{$k \neq k'$}{
                 $k' \gets k$,$k \gets \lceil (l + r)/2 \rceil$\;
-        		$X' \gets dual(X,e_k)$, $m' \gets |\supp(X')|$\;
+        		$X' \gets dual(X,e_k)$, $m' \gets |X'|$\;
         		\lIf{$m' < m$}{
         		    $l \gets k$
         		}
@@ -221,13 +221,13 @@ The first technique we present is the $binsearchApprox(X,m)$ algorithm which is 
 \end{algorithm}
 
 \begin{theorem}\label{the:complexityDual}
-	The $binsearchApprox(X,m)$ algorithm runs in time $O(n^2log(n))$, using $O(n^2)$ memory where $n=|\support(X)|$.
+	The $binsearchApprox(X,m)$ algorithm runs in time $O(n^2log(n))$, using $O(n^2)$ memory where $n=|X|$.
 \end{theorem}
 \begin{proof}
 	In the first part of the algorithm, lines 2-8, we construct the set $E$ which takes $O(n^2)$ run-time. In the second part of the algorithm, line 9, we sort the set $E$ which takes $O(n^2log(n^2)) = O(n^2log(n))$  run-time. The third part of the algorithm, lines 10-19, describes a binary sort over the set $E$ where in each step of the sorting we run the $dual$ algorithm, which takes $O(n log(n^2)) = O(n log(n))$ run-time. We run this part twice then we get $O(2n log(n))$. All together, the run-time complexity is $O(n^2+n^2log(n)+2n log(n)) = O(n^2log(n))$ and the memory complexity is for storing the set $E$ which is $O(n^2)$.
 \end{proof}
 
-As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddlebackApprox(X,m)$ that takes $O(n^2)$ run-time, this technique is very similar to $linApprox(X,m)$ algorithm. The algorithm $saddlebackApprox(X,m)$ gets as input a random variable $X$ and some number $m$. Again, we represent $X$ as a sorted CDF in $O(nlog(n))$ run-time as in line 1 and call it $X_{CDF}$. In line 4 We describe implicitly the sorted matrix $E$, and in lines 3-7 we perform a search over this matrix, in every step of the search we run the $X' = dual(X,\varepsilon)$ algorithm. If the size of $|\support(X')|>m$ then we know that the error $e$ is too small and need to extend the search in the lower side of the matrix, if the size of $|\support(X')|<m$ then we know that the error $e$ is too big and need to extend the search in the right side of the matrix and store this $e$ in $S$. We store in set $S$ all possible candidates for the correct $e$ and in line 8 we get the maximal $m$ with the minimal $e$ value.
+As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddlebackApprox(X,m)$ that takes $O(n^2)$ run-time, this technique is very similar to $linApprox(X,m)$ algorithm. The algorithm $saddlebackApprox(X,m)$ gets as input a random variable $X$ and some number $m$. Again, we represent $X$ as a sorted CDF in $O(nlog(n))$ run-time as in line 1 and call it $X_{CDF}$. In line 4 We describe implicitly the sorted matrix $E$, and in lines 3-7 we perform a search over this matrix, in every step of the search we run the $X' = dual(X,\varepsilon)$ algorithm. If the size of $|X'|>m$ then we know that the error $e$ is too small and need to extend the search in the lower side of the matrix, if the size of $|X'|<m$ then we know that the error $e$ is too big and need to extend the search in the right side of the matrix and store this $e$ in $S$. We store in set $S$ all possible candidates for the correct $e$ and in line 8 we get the maximal $m$ with the minimal $e$ value.
 
 
 \begin{algorithm}
@@ -244,7 +244,7 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 % 		\end{cases}$\;
 		
 		
-		$X' \gets dual(X,e_{i,j})$, $m' \gets |\supp(X')|$\;
+		$X' \gets dual(X,e_{i,j})$, $m' \gets |X'|$\;
 	
 		\lIf {$m'  > m$}
 		{
@@ -281,7 +281,7 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 			$e^+ {\gets} median(\{ e_{i_2,j_2} \colon ((i_1,j_1),(i_2,j_2)) \in S \}) $\;			
 
 			\For{$ e \in \{ e^-,e^+ \}$} {
-				$X' \gets dual(X,e)$, $m' \gets |\supp(X')|$\;
+				$X' \gets dual(X,e)$, $m' \gets |X'|$\;
 	
 				\If {$m' \leq m$} {
 					$S \gets$ $S \setminus \{ ((i_1,j_1),(i_2,j_2)) \in S \colon e_{i_1,j_1} > e \}$ \;
@@ -521,7 +521,7 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 
 
 % \begin{theorem}\label{the:complexity}
-% 	The $\KlmApprox(X,m)$ algorithm runs in time $O(n^2m)$, using $O(n^2)$ memory where $n=|\support(X)|$.
+% 	The $\KlmApprox(X,m)$ algorithm runs in time $O(n^2m)$, using $O(n^2)$ memory where $n=|X|$.
 % \end{theorem}
 % \begin{proof}
 % 	Constructing the graph $G$ as described in Step 2 takes $O(n^2)$ time and memory. Computing the shortest path can be achieved, for example, by the algorithm described in~\cite{guerin2002computing} in time $O(n^2 m)$ and no additional memory allocation.
