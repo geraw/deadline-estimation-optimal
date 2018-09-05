@@ -274,35 +274,24 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 		
 		\While{$S \neq S'$}
 		{
-			$S' \gets S$\;
-
-			$S \gets \displaystyle \bigcup_{s \in S} split(s)$\;
+			$S' \gets S$,
+			$S \gets  \bigcup_{s \in S} split(s)$\;
 			
 			$e^- {\gets} median(\{ e_{i_1,j_1} \colon ((i_1,j_1),(i_2,j_2)) \in S \}) $\;		
-			
-			$X' \gets dual(X,e^-)$, $m' \gets |\supp(X')|$\;
+			$e^+ {\gets} median(\{ e_{i_2,j_2} \colon ((i_1,j_1),(i_2,j_2)) \in S \}) $\;			
 
-			\If {$m' \leq m$} {
-				$S \gets S \setminus \{ ((i_1,j_1),(i_2,j_2)) {\in} S \colon e_{i_1,j_1} {>} e^- \}$ \;
-			}
+			\For{$ e \in \{ e^-,e^+ \}$} {
+				$X' \gets dual(X,e)$, $m' \gets |\supp(X')|$\;
+	
+				\If {$m' \leq m$} {
+					$S \gets$ $S \setminus \{ ((i_1,j_1),(i_2,j_2)) \in S \colon e_{i_1,j_1} > e \}$ \;
+				}
 			
-			\Else %\If {$m'  > m$}
-			{
-				$S \gets S \setminus \{ ((i_1,j_1),(i_2,j_2)) {\in} S \colon e_{i_2,j_2} {\leq} e^- \}$ \;
+				\Else %\If {$m'  > m$}
+				{
+					$S \gets$ $S \setminus \{ ((i_1,j_1),(i_2,j_2)) \in S \colon e_{i_2,j_2} \leq e \}$ \;
+				}
 			}
-		
-			$e^+ {\gets} median(\{ e_{i_2,j_2} \colon ((i_1,j_1),(i_2,j_2)) \in S \}) $\;
-			$X' \gets dual(X,e^+)$, $m' \gets |\supp(X')|$\;
-
-			\If {$m' \leq m$} {
-				$S \gets S \setminus \{ ((i_1,j_1),(i_2,j_2)) {\in} S \colon e_{i_1,j_1} {>} e^+ \}$ \;
-			}
-			\Else %{$m'  > m$}
-			{
-				$S \gets S \setminus \{ ((i_1,j_1),(i_2,j_2)) {\in} S \colon e_{i_2,j_2} {\leq} e^+ \}$ \;
-			}
-			
-		
 		}
 	
 		$S'' \gets \{(|dual(X,e_{i,j})|,e_{i,j}) \colon ((i,j),(i,j)) \in S\}$\;	
