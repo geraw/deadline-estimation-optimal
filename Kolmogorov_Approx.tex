@@ -147,7 +147,7 @@ We do not assume anything about the representation of the random variable $X$ gi
 
 \begin{algorithm}
 	\DontPrintSemicolon
-	Let $\{(x_i, c_i)\}_{i=1}^n$ be such that $c_i = Pr(X \leq x_i)$ and $\supp(X)=\{x_1 <\cdots < x_n\}$.\;
+	%Let $\{(x_i, c_i)\}_{i=1}^n$ be such that $c_i = Pr(X \leq x_i)$ and $\supp(X)=\{x_1 <\cdots < x_n\}$.\;
     $f \gets 0$, $l \gets n$+1\; 
     \While{$c_{f +1} \leq \varepsilon$}{$f \gets f + 1$}
 
@@ -164,7 +164,7 @@ We do not assume anything about the representation of the random variable $X$ gi
     	
     	
 	
-	\caption{$dual(X,\varepsilon)$}   
+	\caption{$dual(\{(x_i, c_i)\}_{i=1}^n,\varepsilon)$  }   
 	\label{alg:dual}
 \end{algorithm}
 
@@ -246,11 +246,11 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 		
 		$X' \gets dual(X,e_{i,j})$, $m' \gets |X'|$\;
 	
-		\lIf {$m'  > m$}
+		\lIf {$m'  \leq m$}
 		{
 			$j \gets j - 1$
 		}
-		\lIf {$m' \leq m$} {
+		\lIf {$m' > m$} {
 			$i \gets i + 1$, $S \gets S \cup (m',e)$			
 		}
 	}
@@ -269,7 +269,7 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 		$w \gets 2^{\lceil \log_2(n/2) \rceil}$,
 		$h \gets 2^{\lceil \log_2(n/2+1) \rceil}$ \;
 				
-		$S \gets  \{ ((1, 1)),(w,h)) \}$, $S' \gets \emptyset$\;
+		$S \gets  \{ ((1, 1),(w,h)) \}$, $S' \gets \emptyset$\;
 		
 		
 		\While{$S \neq S'$}
@@ -324,10 +324,18 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 	
 	Let 
 	$$e_{i,j} = \begin{cases}
-	c_j   & \text{if } 1 \leq j \leq n \wedge  i > n; \\
-	1-c_i & \text{if } 1 \leq i \leq n \wedge  j \geq n; \\
-	|(c_{n+1-j} {-} c_i)/2|  & \text{if } 1 \leq i \leq n{+}1 \wedge 1 \leq j \leq n; \\
-	|(c_{n+1-j} {-} c_i)/2|  & \text{otherwise}.
+	c_j   & \text{if } j \leq n \wedge  i > n; \\
+	1-c_i & \text{if } i \leq n \wedge  j \geq n; \\
+	%(c_{n+1-j} {-} c_i)/2  & \text{if } i \leq n \wedge i{+}j\leq n{+}1; \\
+	
+	%(c_{n+1-i} {-} c_i)/2  & \text{if } j \leq n \wedge i{+}j\leq n; \\
+		
+	(c_{p-1 +i} {-} c_{p+1-j})/2  & \text{if } i \leq n \wedge i{+}j\leq n{+}1; \\
+	
+	(c_{p-1 +i} {-} c_{p+1-i})/2  & \text{if } i \leq n \wedge i{+}j\leq n{+}1; \\ 
+	
+
+	\infty  & \text{otherwise}.
 	\end{cases}$$
 
 
@@ -544,7 +552,7 @@ As a step towards $linApprox(X,m)$ algorithm, we present the algorithm $saddleba
 \section{Experimental evaluation}\label{sec:exp}
 
 We describe below several experiments that show how $\KlmApprox$ performs in practice in different applications and domains.
-All algorithms were implemented in Python and the experiments were executed on a hardware comprised of an Intel i5-6500 CPU @ 3.20GHz processor and 8GB memory. The algorithms of Cohen et al. were taken "as is" from in the supplementary material to~\cite{cohen2015estimating}.
+All algorithms were implemented in Python and the experiments were executed on a hardware comprised of an Intel i5-6500 CPU @ 3.20GHz processor and 8GB memory. The algorithms of Cohen et al. were taken ``as is" from in the supplementary material to~\cite{cohen2015estimating}.
 
 \paragraph{Repetitive support size minimization.} One use of support size minimization is when commutations that involve summations of random variables slow due to an exponential growth in the support of convolutions of random variables~\cite{cohen2015estimating}. A key action in coping with this situation is reduction of the  support size by replacing the summed random variable by an approximation of it that has a smaller support size. Previous work such as the work of Cohen et al. in ~\cite{cohen2015estimating,CohenGW18} handle this reduction using weaker or sub-optimal notion of approximation than ours, as discussed in Section~\ref{sec:relwork}. 
 
