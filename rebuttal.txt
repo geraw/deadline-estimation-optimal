@@ -1,0 +1,49 @@
+We thank the reviewers for the constructive and deep feedback. See the responses to all specific issues below. We will also fix the small typos identified by the reviewers. 
+
+Reviewer #1:
+-----------------
+Thank you for the corrections. We will incorporate them in the final version. 
+
+Regarding "dual(X,m) -> dual(X, e_m)" and "(m', e) -> (m', e_{i,j}) ". You are correct.
+
+Regarding Algorithm 3, to make the algorithm more readable, we will move the update to a separate line and execute it iff $m' \geq m$. This does not change the complexity and only adds candidates to S (does not remove any candidate from it) thus it does not break the correctness of the algorithm.
+
+Reviewer #2:
+-----------------
+Regarding interest to the broader AI community:  compression of random variables and of other objects used in AI, such as neural networks, is a broad problem with many applications. We focused on a specific problem in this paper in order to provide full details. We plan to continue with other results towards a complete theory and practices in this field. 
+
+In page 7, we will change "random variables of 100" to "random variables with $n=100$". Thank you. 
+
+We will insert full bibliographic details as proposed.
+
+Reviewer #3:
+-----------------
+Cohen et al. (2018) is the state of the art to the best of our knowledge. There is also a recent draft on the arxiv that presents an attempt to tackle the optimal approximation problem that we deal with in this paper by extending the algorithm of Cohen et al. (2018). We compared the results of this algorithm with ours and made sure that they produce random variables with equal approximation quality (same Kolmogorov distance from the original random variable). However, the draft on the archive presents a quadratic algorithm while ours complexity is of O(n logn). We also tested that our algorithm runs faster in practice.
+
+Reviewer #4:
+-----------------
+Indeed, we agree with the reviewer that this work can be seen as a compression algorithm. We believe our work is relevant to a wider audience and we plan to extend it to compression by other metrics and of other objects. 
+
+The following are answers to the "Detailed Comments":
+
+- We will add to Section 1 a forward reference to the linear program described in Section 2. Liat, sec 1
+
+- We have some preliminary work on possible extensions of our work to other distances. We believe that we can find optimal approximations relative to these distances in polynomial time, but not in linear time. We didn't add these to the paper because we don't want to publish half-baked results. We plan to add them to a journal version of the paper in the near future.
+
+- We verified that the <= is correct in line 6 of Algorithm 1. The idea is that we extend the interval [b,e] until $c_{e+1}-c_b$ it is larger than $2\varepsilon$ and $c_{e}-c_b$ is smaller or equal to it.
+
+- We agree that the proof of Algorithm 1 can be more detailed. We will elaborate in the final version. Specifically, we will explain that we are not only showing that the solution found is locally optimum, we are showing that it is a *global* optimum. The proof goes by showing that *any* change to the solution will either give a inferior or same approximation distance.
+
+- We will add an example of execution of Algorithm 1 to explain the rationale.
+
+- We will clarify in the proof of Algorithm 2 that the fact that the optimal error is one of the distances between any two steps of the CDFs is because we seek a random variable whose support is included in the original one. Thank you for pointing out this leap in the proof, we believe that the clarifications will improve the final version.
+
+- We will note in the proof of Algorithm 2 the fact that the distance is monotonic with the support size. Thank you for this advice, we believe that it will significantly help future readers. 
+
+- Regarding the question "Why do you need k and k' in algorithm 2 and not just l and r": k' is needed for the termination condition. We tried to write the algorithm without m' and k and we felt that it comes too complex to read.
+
+- Regarding the question about the second call to the dichotomy search: If m is not in the set of optimal solutions we may end up with a variable that is not optimal because it can be improved by using m'' such that $m < m'' < m'$. This issue is solved by a direct application of the dual algorithm with the computed $e_k$. We will elaborate.
+
+- We will add some background and explanation on the use of the sorted matrix.
+
+- Regarding 850s that the linear programming solver consumed: In the specific experiment discussed in this context the algorithms (LP and our algorithm) are both implemented in Wolfram Mathematica. Therefore, the run-time comparison is fair. We will report on the number of variables and constraints. Unfortunately, we don't have hand-on experience with cplex or gurobi. Note that the 850s is because this is not a pure continuous LP problem since it involves counting zeroes and optimizing for the maximum norm.
